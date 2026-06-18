@@ -1,0 +1,29 @@
+# Construit le bundle flutter-pi arm64.
+# flutterpi_tool : pubspec, lib/, assets.
+
+# Versionnement / éditeurs
+.git
+.gitignore
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Artefacts de build & caches, recréés dans l'image
+build/
+dist/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+
+# Plateformes inutiles au build flutter-pi
+macos/
+web/
+linux/
+
+# Divers
+.metadata
+*.log
+Dockerfile*
+.dockerignore
