@@ -1,6 +1,6 @@
 # Kioskdiag — Config / Diagnostic Tourniquets
 
-Application **Flutter** de configuration et de diagnostic des tourniquets.
+Application Flutter de configuration et de diagnostic des tourniquets.
 
 ## Développement local
 
@@ -25,77 +25,56 @@ lib/
 ├── screens/
 │   ├── home_shell.dart       # en-tête + navigation entre onglets
 │   └── dashboard_screen.dart # onglet Dashboard : uptime, disque, perf
-└── widgets/                  # cartes, graphes, anneau disque, pastilles…
+└── widgets/                  # cartes, graphes, anneau disque, pastilles
 ```
 
-Les onglets Lecteurs / Tests / Connectivité restent à implémenter. Les vraies
+Les onglets Lecteurs, Tests et Connectivité restent à implémenter. Les vraies
 métriques système remplaceront `DiagnosticData.mock`.
 
-## Cible : carte RK3568 avec GPU Mali
+## Cible : borne RK3568 / GPU Mali
 
-Sur la carte, l'app tourne via **flutter-pi** : rendu **directement sur l'écran
-via le GPU**.
+L'app tourne en kiosque comme **client de weston**. weston détient `/dev/dri/card0`,
+l'app n'y touche jamais. Cela évite le crash kernel use-after-free GEM qui
+survenait avec flutter-pi. Le rendu est accéléré matériellement par le blob Mali
+g24p0 via l'embedder **flutter-elinux** en backend Wayland.
 
-> **Ne pas builder en GTK desktop** avec `flutter build linux`. Sur cette carte,
-> le GL de X11 repose entièrement sur le pilote Mali propriétaire
-> flutter-pi contourne X et parle au GPU en direct → accélération matérielle
-> Mali, plein écran.
+L'historique complet des problèmes et des correctifs est dans
+[docs/troubleshooting-affichage-mali-weston.md](docs/troubleshooting-affichage-mali-weston.md).
 
 ### Construire le bundle
 
-flutter-pi suit une version de Flutter pour laquelle son moteur est publié : **3.41.7**. 
-
-Avec Docker, reproductible et recommandé :
+Build Docker arm64, reproductible :
 
 ```sh
-docker build --target export --output type=local,dest=dist .
-# dist/ = flutter-pi + app.so + libflutter_engine.so + icudtl.dat + assets
-```
-
-Ou directement sur l'hôte :
-
-```sh
-git -C <flutter-sdk> worktree add --detach ~/flutter341 3.41.7
-export PATH="$HOME/flutter341/bin:$HOME/.pub-cache/bin:$PATH"
-dart pub global activate flutterpi_tool
-flutter pub get
-flutterpi_tool build --arch arm64 --cpu generic --release
-# build/flutter-pi/aarch64-generic/
+docker build -f Dockerfile.elinux --target export \
+  --output type=local,dest=dist-elinux .
 ```
 
 ### Déployer et lancer
 
-```sh
-scp -r dist/* orbinea@<carte>:/data/kioskdiag-pi/
-```
+Copier sur la carte le bundle `dist-elinux/`, le script
+`deploy/run-weston-elinux.sh` et `deploy/eglshim.c` dans `/data/kioskdiag-gtk/`.
 
-Sur la carte, points à connaître :
-
-- **Lib Mali GBM** : poser le bon blob `libmali-…-gbm.so` dans le bundle, car les
-  libs Mali du système peuvent être incohérentes. Faire pointer `libEGL.so.1`,
-  `libGLESv2.so.2` et `libgbm.so.1` dessus, puis lancer avec `LD_LIBRARY_PATH`
-  réglé sur le bundle.
-- **`libatomic.so.1`** requis : `sudo apt-get install -y libatomic1`.
-- **Libérer l'écran** : couper le serveur X avant de lancer.
-- **Bon device DRM** : flutter-pi auto-sélectionne parfois le mauvais nœud, on force la carte d'affichage `card0` en lui passant un FD ouvert.
+Compiler le shim EGL sur la carte une fois :
 
 ```sh
-sudo systemctl stop getty@tty1
-sudo pkill -x Xorg
-cd /data/kioskdiag-pi
-sudo bash -c 'exec 3<>/dev/dri/card0; \
-  LD_LIBRARY_PATH=. ./flutter-pi --release --drm-fd 3 -r 90 -d "154,86" .'
+gcc -shared -fPIC -O2 -o eglshim.so eglshim.c -ldl
 ```
 
-- `-r 90` : dalle 1024×600 montée en **portrait**.
-- `-d "154,86"` : dimensions physiques de la dalle, environ 7 pouces, pour la
-  bonne échelle de l'UI.
+Lancer via un VT réel :
 
-Au démarrage, un **service systemd** lance ce `run.sh` automatiquement, avec
-`Conflicts=getty@tty1`, `Restart=always` et `TimeoutStopSec=5s`. 
+```sh
+sudo openvt -fs -c 2 -- /data/kioskdiag-gtk/run-weston-elinux.sh
+```
+
+Le script `run-weston-elinux.sh` contient la configuration commentée : symlinks
+du blob Mali, weston en backend DRM, lancement du client avec
+`LD_PRELOAD=eglshim.so`. La rotation portrait se fait dans l'app, jamais via le
+transform de weston qui fait crasher l'embedder.
 
 ## Notes
 
-- `macos/` et `web/` ne sont pas versionnés, ils servent au dev/test local ;
-  régénérables via `flutter create`.
-- `pubspec.lock` **est** versionné.
+- `macos/` et `web/` ne sont pas versionnés, ils servent au dev/test local et
+  sont régénérables via `flutter create`.
+- `pubspec.lock` est versionné.
+- Les bundles de build `dist-elinux/` et `dist-linux/` ne sont pas versionnés.
