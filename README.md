@@ -31,7 +31,7 @@ lib/
 Les onglets Lecteurs, Tests et Connectivité restent à implémenter. Les vraies
 métriques système remplaceront `DiagnosticData.mock`.
 
-## Cible : borne RK3568 / GPU Mali
+## Cible : borne RK3568 avec GPU Mali
 
 L'app tourne en kiosque comme **client de weston**. weston détient `/dev/dri/card0`,
 l'app n'y touche jamais. Cela évite le crash kernel use-after-free GEM qui
