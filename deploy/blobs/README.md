@@ -1,4 +1,4 @@
-# Blob Mali — sauvegarde
+# Blob Mali 
 
 Pilote userspace **Mali g24p0** strictement nécessaire à l'affichage accéléré de
 l'UI sur la borne RK3568. C'est le seul binaire runtime non reconstructible
