@@ -1,8 +1,11 @@
-# notes perso
-docs/
+# notes perso (ignorées), sauf le doc de debug consolidé qu'on versionne
+docs/*
+!docs/troubleshooting-affichage-mali-weston.md
 
-# Bundle flutter-pi extrait du build Docker
+# Bundles extraits des builds Docker (flutter-elinux / flutter-pi)
 dist/
+dist-elinux/
+dist-linux/
 
 # Plateforme macOS : sert uniquement au dev/test local sur Mac.
 # Gardée sur le disque, flutter run -d macos marche, mais non versionnée.
