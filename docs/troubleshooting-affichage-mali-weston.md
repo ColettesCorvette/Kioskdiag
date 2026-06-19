@@ -51,7 +51,7 @@ getty autologin  →  weston (détient card0, backend DRM)
 | **flutter-pi direct** | plante | le fameux bug : ferme `card0` → UAF GEM kernel. |
 | **GTK3 sous Wayland** `flutter build linux` | **écran noir** | L'embedder GTK3 **rend** bien en GLES mais ne présente jamais sa frame sous Wayland : `gdk_cairo_draw_from_gl` ne commit aucun buffer. Prouvé indépendamment par un `GtkGLArea` minimal de 25 lignes → noir alors que le GPU dessine. Indépendant de la version Flutter, pas lié à Impeller. Cul-de-sac structurel. |
 | **cage / wlroots 0.12** | segfault / D-state | Le vieux blob Mali système et wlroots se bloquent sur un deadlock `drm_master`. Incompatibilité blob/compositeur. |
-| **logiciel / llvmpipe** | lent | catastrophe » niveau perf. |
+| **logiciel / llvmpipe** | lent | catastrophe niveau perf. |
 | **weston `[output] transform=90`** | segfault embedder | Faire la rotation portrait côté compositeur fait crasher l'embedder eLinux. → rotation déplacée dans l'appli. |
 | **weston DRM et flutter-elinux Wayland** | **MARCHE** | weston possède `card0`, elinux est un client `wl_egl_window` brut comme `weston-simple-egl` qui présente réellement. |
 
