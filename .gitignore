@@ -1,19 +1,18 @@
-# notes perso (ignorées), sauf le doc de debug consolidé qu'on versionne
+# notes perso sauf le doc de debug 
 docs/*
 !docs/troubleshooting-affichage-mali-weston.md
 
-# Bundles extraits des builds Docker (flutter-elinux / flutter-pi)
+# Bundles extraits des builds Docker 
 dist/
 dist-elinux/
 dist-linux/
 
 # Plateforme macOS : sert uniquement au dev/test local sur Mac.
-# Gardée sur le disque, flutter run -d macos marche, mais non versionnée.
 # La cible de prod est Linux arm64 ; macos/ est régénérable via flutter create.
 macos/
 
 # Plateforme web : sert uniquement au preview local, flutter run -d web-server.
-# Non versionnée ; régénérable via flutter create --platforms=web .
+# Non versionnée régénérable via flutter create --platforms=web .
 web/
 
 # Miscellaneous
@@ -36,7 +35,7 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# VS Code / VSCodium : décommenter pour ignorer la config locale d'éditeur.
+# VS Code / VSCodium 
 #.vscode/
 
 # Flutter / Dart / Pub
