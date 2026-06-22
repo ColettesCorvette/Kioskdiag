@@ -1,25 +1,25 @@
 [Unit]
 Description=Kioskdiag kiosque (weston + flutter-elinux, Mali g24p0)
 Documentation=file:/data/kioskdiag-gtk/run-weston-elinux.sh
-# Pas de section [Install] -> le service ne peut PAS etre enable,
-# donc il ne demarre jamais tout seul au boot. Demarrage 100% manuel.
+# Pas de section [Install] -> le service ne peut pas etre enable,
+# donc il ne demarre pas tout seul au boot. Demarrage 100% manuel.
 ConditionPathExists=/data/kioskdiag-gtk/run-weston-elinux.sh
 
 [Service]
 Type=simple
 # weston en backend DRM exige un VT actif, sinon il bloque sur VT_WAITACTIVE.
-# openvt -fsw : bascule sur le VT 2, le rend actif, et ATTEND la fin du kiosque
-# (le -w est indispensable pour que systemd suive le cycle de vie du service).
+# openvt -fsw : bascule sur le VT 2, le rend actif, et attend la fin du kiosque
+# le -w est indispensable pour que systemd suive le cycle de vie du service.
 ExecStart=/usr/bin/openvt -fsw -c 2 -- /data/kioskdiag-gtk/run-weston-elinux.sh
 
-# Le script lance weston + le client en arriere-plan ; a l'arret, on tue tout
+# Le script lance weston et le client en arriere-plan ; a l'arret, on tue tout
 # le groupe de controle pour ne laisser ni weston ni l'appli orphelins.
 KillMode=control-group
 TimeoutStopSec=10
 
-# Pour l'instant on ne relance pas tout seul. Plus tard, en mode borne :
+# Pour l'instant on ne relance pas tout seul. 
 # Restart=always
 Restart=no
 
-# LIBSEAT_BACKEND=builtin (dans le script) ouvre le DRM directement -> root.
+# LIBSEAT_BACKEND=builtin du script ouvre le DRM directement -> root.
 User=root
