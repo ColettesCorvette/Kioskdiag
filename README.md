@@ -33,7 +33,7 @@ métriques système remplaceront `DiagnosticData.mock`.
 
 ## Cible : borne RK3568 avec GPU Mali
 
-L'app tourne en kiosque comme **client de weston**. weston détient `/dev/dri/card0`,
+L'app tourne en kiosque comme **client de weston**. Weston détient `/dev/dri/card0`,
 l'app n'y touche jamais. Cela évite le crash kernel use-after-free GEM qui
 survenait avec flutter-pi. Le rendu est accéléré matériellement par le blob Mali
 g24p0 via l'embedder **flutter-elinux** en backend Wayland.
