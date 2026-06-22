@@ -1,19 +1,17 @@
 #!/bin/sh
-# Lance kioskdiag (embedder flutter-elinux WAYLAND) en kiosque sous weston.
-# === CONFIG GAGNANTE (validée hardware sur la borne RK3568 / Mali g24p0) ===
+# Lance kioskdiag embedder flutter-elinux WAYLAND.
+# === CONFIG ===
 #
-# Pourquoi cette stack :
 #  - GTK3 ne présente pas le GLES Mali sous Wayland -> on utilise l'embedder
-#    flutter-elinux (client wl_egl_window brut, comme weston-simple-egl).
+#    flutter-elinux client wl_egl_window brut, comme weston-simple-egl.
 #  - weston possède /dev/dri/card0 -> l'appli n'y touche jamais -> plus de
-#    use-after-free GEM (le bug de flutter-pi).
-#  - Blob Mali g24p0 COMBINÉ (x11-wayland-gbm) : le g2p0 système est trop vieux
-#    (eglQueryString NULL / JIT). g24p0-gbm seul = mauvaise plateforme.
-#  - eglshim.so : le blob combiné fait du X11 par défaut dans eglGetDisplay
-#    (legacy, ambigu) et CRASHE sans serveur X. Le shim réécrit eglGetDisplay
-#    -> eglGetPlatformDisplayEXT(EGL_PLATFORM_WAYLAND_EXT) pour forcer le Wayland.
-#  - Rotation portrait : PAS via weston `[output] transform=` (ça fait segfaulter
-#    l'embedder eLinux) -> on la fait DANS l'appli (RotatedBox / _quarterTurns).
+#    use-after-free GEM.
+#  - Blob Mali g24p0 COMBINÉ x11-wayland-gbm : le g2p0 système est trop vieux
+#    (eglQueryString NULL). g24p0-gbm seul = mauvaise plateforme.
+#  - eglshim.so : le blob combiné fait du X11 par défaut dans eglGetDisplay et CRASHE sans serveur X. 
+#    Le shim réécrit eglGetDisplay -> eglGetPlatformDisplayEXT(EGL_PLATFORM_WAYLAND_EXT) pour forcer le Wayland.
+#  - Rotation portrait : PAS via weston `[output] transform=` ça fait segfaulter
+#    l'embedder eLinux -> on la fait dabs l'appli RotatedBox et _quarterTurns.
 set -eu
 
 BUNDLE=/data/kioskdiag-gtk
@@ -26,7 +24,7 @@ SHIMSO="$BUNDLE/eglshim.so"
 [ -e "$SHIMSO" ] || { echo "eglshim.so absent: $SHIMSO" >&2; exit 1; }
 
 rm -rf "$SHIM"; mkdir -p "$SHIM/gbm" "$SHIM/wl"
-# weston (compositeur) : plateforme GBM
+# weston compositeur : plateforme GBM
 for f in libEGL.so.1 libGLESv2.so.2 libgbm.so.1; do ln -sf "$MALI" "$SHIM/gbm/$f"; done
 # client eLinux : EGL/GLES + wl_egl_window, tous depuis le blob g24p0
 for f in libEGL.so.1 libGLESv2.so.2 libwayland-egl.so.1; do ln -sf "$MALI" "$SHIM/wl/$f"; done
