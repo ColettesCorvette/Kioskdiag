@@ -12,7 +12,7 @@ WDISP=wayland-tc
 PIDF=/run/kioskdiag.pid
 
 # Mono-instance : si un kioskdiag tourne déjà, ne rien faire.
-if [ -f "$PIDF" ] && kill -0 "$(cat "$PIDF" 2>/dev/null)" 2>/dev/null; then
+if [ -f "$PIDF" ] && read -r pid < "$PIDF" 2>/dev/null && [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
   exit 0
 fi
 
@@ -35,5 +35,6 @@ WAYLAND_DISPLAY="$WDISP" EGL_PLATFORM=wayland LD_PRELOAD="$SHIMSO" \
   "$BIN" --bundle="$BUNDLE" --no-cursor >/tmp/kioskdiag-diag.log 2>&1 &
 CPID=$!
 echo "$CPID" > "$PIDF"
+trap 'rm -f "$PIDF"' EXIT INT TERM
 wait "$CPID"
 rm -f "$PIDF"
