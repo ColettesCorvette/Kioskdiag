@@ -31,9 +31,11 @@ sudo systemctl status gesture-daemon.service --no-pager
 ## 4. Tester
 
 - Taper les 4 coins HG → HD → BD → BG en < 5 s → kioskdiag apparaît plein écran.
+- **Test négatif** : taps au centre / appui simple → ne déclenche PAS kioskdiag.
 - Bouton "Quitter" → retour kioskview.
 - 3 min sans toucher kioskdiag → retour auto kioskview.
 - Vérifier que kioskview reste réactif au tactile (events non volés).
+- **Survit au reboot** : `sudo reboot`, puis `systemctl is-enabled gesture-daemon` = `enabled` et le geste fonctionne toujours.
 - Calibrer l'ordre des coins : si HG/HD/... ne correspond pas au sens physique, ajuster `EXPECTED[]` dans gesture-daemon.c et recompiler.
 
 ## Logs
