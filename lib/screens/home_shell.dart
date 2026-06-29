@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/diagnostic_data.dart';
 import '../theme.dart';
+import '../util/quit.dart';
 import '../widgets/diag_header.dart';
 import 'connectivite_screen.dart';
 import 'dashboard_screen.dart';
@@ -43,6 +44,7 @@ class _HomeShellState extends State<HomeShell> {
                     () => _quarterTurns = (_quarterTurns + 1) % 4,
                   ),
                   onResetOrientation: () => setState(() => _quarterTurns = 1),
+                  onQuit: quitApp,
                 ),
                 Expanded(child: _body()),
               ],
