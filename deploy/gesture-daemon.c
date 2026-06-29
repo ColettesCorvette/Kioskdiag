@@ -76,3 +76,51 @@ int main(void) {
   return 0;
 }
 #endif
+
+#ifndef SELFTEST
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <time.h>
+#include <linux/input.h>
+#include <sys/ioctl.h>
+
+#define LAUNCH_CMD "/usr/local/bin/launch-kioskdiag.sh &"
+
+static long now_ms(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
+}
+
+int main(int argc, char **argv) {
+  if (argc < 2) { fprintf(stderr, "usage: %s /dev/input/eventX\n", argv[0]); return 2; }
+  int fd = open(argv[1], O_RDONLY);
+  if (fd < 0) { perror("open"); return 1; }
+
+  struct input_absinfo ax, ay;
+  if (ioctl(fd, EVIOCGABS(ABS_X), &ax) < 0) ioctl(fd, EVIOCGABS(ABS_MT_POSITION_X), &ax);
+  if (ioctl(fd, EVIOCGABS(ABS_Y), &ay) < 0) ioctl(fd, EVIOCGABS(ABS_MT_POSITION_Y), &ay);
+
+  int cx = ax.value, cy = ay.value;     // dernière position connue
+  struct seq s = {0, 0};
+  struct input_event ev;
+
+  while (read(fd, &ev, sizeof(ev)) == (ssize_t)sizeof(ev)) {
+    if (ev.type == EV_ABS) {
+      if (ev.code == ABS_X || ev.code == ABS_MT_POSITION_X) cx = ev.value;
+      else if (ev.code == ABS_Y || ev.code == ABS_MT_POSITION_Y) cy = ev.value;
+    } else if (ev.type == EV_KEY && ev.code == BTN_TOUCH && ev.value == 0) {
+      // touch-up : classer la dernière position en coin.
+      int c = corner_of(cx, cy, ax.minimum, ax.maximum, ay.minimum, ay.maximum);
+      if (seq_feed(&s, c, now_ms())) {
+        fprintf(stderr, "gesture-daemon: séquence détectée -> lancement\n");
+        system(LAUNCH_CMD);
+      }
+    }
+  }
+  perror("read");
+  close(fd);
+  return 1;
+}
+#endif
