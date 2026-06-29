@@ -12,6 +12,7 @@ class DiagHeader extends StatelessWidget {
     required this.subtitle,
     required this.onToggleOrientation,
     required this.onResetOrientation,
+    required this.onQuit,
   });
 
   final String title;
@@ -22,6 +23,9 @@ class DiagHeader extends StatelessWidget {
 
   /// Appui long retour à l'orientation par défaut.
   final VoidCallback onResetOrientation;
+
+  /// Ferme kioskdiag et revient à l'affichage client.
+  final VoidCallback onQuit;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +85,13 @@ class DiagHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          // Quitter : retour à l'affichage client kioskview.
+          IconButton(
+            tooltip: 'Quitter',
+            icon: const Icon(Icons.close, color: DiagColors.title),
+            onPressed: onQuit,
+          ),
+          const SizedBox(width: 4),
           // Bouton de rotation de l'écran.
           Material(
             color: DiagColors.red,

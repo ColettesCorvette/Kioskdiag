@@ -1,0 +1,132 @@
+// deploy/gesture-daemon.c
+// Démon : détecte la séquence des 4 coins sur le touchscreen evdev et lance
+// kioskdiag. Logique pure isolée pour être testable (-DSELFTEST), I/O en dessous.
+#include <stdio.h>
+#include <stdlib.h>
+
+enum corner { C_NONE = 0, C_TL, C_TR, C_BR, C_BL };
+
+// Zone-coin : < 15% ou > 85% des bornes ABS sur CHAQUE axe. Centre -> C_NONE.
+int corner_of(int x, int y, int xmin, int xmax, int ymin, int ymax) {
+  int xr = xmax - xmin, yr = ymax - ymin;
+  if (xr <= 0 || yr <= 0) return C_NONE;
+  int left   = (x - xmin) * 100 < xr * 15;
+  int right  = (x - xmin) * 100 > xr * 85;
+  int top    = (y - ymin) * 100 < yr * 15;
+  int bottom = (y - ymin) * 100 > yr * 85;
+  if (top && left)    return C_TL;
+  if (top && right)   return C_TR;
+  if (bottom && right)return C_BR;
+  if (bottom && left) return C_BL;
+  return C_NONE;
+}
+
+struct seq { int idx; long last_ms; };
+
+// Séquence attendue (repère brut ; labels calibrés au test physique).
+static const int EXPECTED[4] = { C_TL, C_TR, C_BR, C_BL };
+#define SEQ_WINDOW_MS 5000
+
+int seq_feed(struct seq *s, int corner, long now_ms) {
+  if (corner == C_NONE) return 0;
+  if (s->idx > 0 && now_ms - s->last_ms > SEQ_WINDOW_MS) s->idx = 0;
+  if (corner == EXPECTED[s->idx]) {
+    s->idx++;
+    s->last_ms = now_ms;
+    if (s->idx == 4) { s->idx = 0; return 1; }
+  } else {
+    s->idx = (corner == EXPECTED[0]) ? 1 : 0;
+    s->last_ms = now_ms;
+  }
+  return 0;
+}
+
+#ifdef SELFTEST
+int main(void) {
+  // corner_of : bornes 0..1000 sur les 2 axes.
+  if (corner_of(50, 50, 0, 1000, 0, 1000)   != C_TL) { puts("FAIL TL"); return 1; }
+  if (corner_of(950, 50, 0, 1000, 0, 1000)  != C_TR) { puts("FAIL TR"); return 1; }
+  if (corner_of(950, 950, 0, 1000, 0, 1000) != C_BR) { puts("FAIL BR"); return 1; }
+  if (corner_of(50, 950, 0, 1000, 0, 1000)  != C_BL) { puts("FAIL BL"); return 1; }
+  if (corner_of(500, 500, 0, 1000, 0, 1000) != C_NONE){ puts("FAIL center"); return 1; }
+
+  struct seq s = {0, 0};
+  // Séquence complète dans la fenêtre -> déclenche au 4e.
+  if (seq_feed(&s, C_TL, 0)) { puts("FAIL early1"); return 1; }
+  if (seq_feed(&s, C_TR, 100)) { puts("FAIL early2"); return 1; }
+  if (seq_feed(&s, C_BR, 200)) { puts("FAIL early3"); return 1; }
+  if (!seq_feed(&s, C_BL, 300)) { puts("FAIL trigger"); return 1; }
+
+  // Timeout au milieu -> reset, pas de déclenchement.
+  struct seq t = {0, 0};
+  seq_feed(&t, C_TL, 0);
+  seq_feed(&t, C_TR, 100);
+  if (seq_feed(&t, C_BR, 6000)) { puts("FAIL timeout"); return 1; }
+
+  // Mauvais coin -> reset (mais un C_TL relance idx=1).
+  struct seq u = {0, 0};
+  seq_feed(&u, C_TL, 0);
+  seq_feed(&u, C_BL, 100);   // hors séquence -> reset à 0
+  seq_feed(&u, C_TL, 200);   // relance
+  seq_feed(&u, C_TR, 300);
+  seq_feed(&u, C_BR, 400);
+  if (!seq_feed(&u, C_BL, 500)) { puts("FAIL recover"); return 1; }
+
+  puts("OK");
+  return 0;
+}
+#endif
+
+#ifndef SELFTEST
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <time.h>
+#include <linux/input.h>
+#include <sys/ioctl.h>
+
+#define LAUNCH_CMD "/usr/local/bin/launch-kioskdiag.sh &"
+
+static long now_ms(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
+}
+
+int main(int argc, char **argv) {
+  if (argc < 2) { fprintf(stderr, "usage: %s /dev/input/eventX\n", argv[0]); return 2; }
+  int fd = open(argv[1], O_RDONLY);
+  if (fd < 0) { perror("open"); return 1; }
+
+  struct input_absinfo ax, ay;
+  if (ioctl(fd, EVIOCGABS(ABS_X), &ax) < 0 &&
+      ioctl(fd, EVIOCGABS(ABS_MT_POSITION_X), &ax) < 0) {
+    fprintf(stderr, "%s: pas d'axe X absolu\n", argv[1]); close(fd); return 1;
+  }
+  if (ioctl(fd, EVIOCGABS(ABS_Y), &ay) < 0 &&
+      ioctl(fd, EVIOCGABS(ABS_MT_POSITION_Y), &ay) < 0) {
+    fprintf(stderr, "%s: pas d'axe Y absolu\n", argv[1]); close(fd); return 1;
+  }
+
+  int cx = ax.value, cy = ay.value;     // dernière position connue
+  struct seq s = {0, 0};
+  struct input_event ev;
+
+  while (read(fd, &ev, sizeof(ev)) == (ssize_t)sizeof(ev)) {
+    if (ev.type == EV_ABS) {
+      if (ev.code == ABS_X || ev.code == ABS_MT_POSITION_X) cx = ev.value;
+      else if (ev.code == ABS_Y || ev.code == ABS_MT_POSITION_Y) cy = ev.value;
+    } else if (ev.type == EV_KEY && ev.code == BTN_TOUCH && ev.value == 0) {
+      // touch-up : classer la dernière position en coin.
+      int c = corner_of(cx, cy, ax.minimum, ax.maximum, ay.minimum, ay.maximum);
+      if (seq_feed(&s, c, now_ms())) {
+        fprintf(stderr, "gesture-daemon: séquence détectée -> lancement\n");
+        system(LAUNCH_CMD);
+      }
+    }
+  }
+  perror("read");
+  close(fd);
+  return 1;
+}
+#endif

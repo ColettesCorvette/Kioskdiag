@@ -1,0 +1,15 @@
+[Unit]
+Description=Gesture daemon (accès diag kioskdiag par geste 4 coins)
+After=kioskview-kiosk.service
+Wants=kioskview-kiosk.service
+
+[Service]
+Type=simple
+# Remplacer eventX par le touchscreen réel (voir README-acces-diag.md).
+ExecStart=/usr/local/bin/gesture-daemon /dev/input/eventX
+User=root
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
