@@ -99,8 +99,14 @@ int main(int argc, char **argv) {
   if (fd < 0) { perror("open"); return 1; }
 
   struct input_absinfo ax, ay;
-  if (ioctl(fd, EVIOCGABS(ABS_X), &ax) < 0) ioctl(fd, EVIOCGABS(ABS_MT_POSITION_X), &ax);
-  if (ioctl(fd, EVIOCGABS(ABS_Y), &ay) < 0) ioctl(fd, EVIOCGABS(ABS_MT_POSITION_Y), &ay);
+  if (ioctl(fd, EVIOCGABS(ABS_X), &ax) < 0 &&
+      ioctl(fd, EVIOCGABS(ABS_MT_POSITION_X), &ax) < 0) {
+    fprintf(stderr, "%s: pas d'axe X absolu\n", argv[1]); close(fd); return 1;
+  }
+  if (ioctl(fd, EVIOCGABS(ABS_Y), &ay) < 0 &&
+      ioctl(fd, EVIOCGABS(ABS_MT_POSITION_Y), &ay) < 0) {
+    fprintf(stderr, "%s: pas d'axe Y absolu\n", argv[1]); close(fd); return 1;
+  }
 
   int cx = ax.value, cy = ay.value;     // dernière position connue
   struct seq s = {0, 0};
