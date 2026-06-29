@@ -1,5 +1,9 @@
 # Accès diag kioskdiag par geste 4 coins — déploiement
 
+> **Contrat externe** : le socket `wayland-tc` et la base `/run/kioskview-mali`
+> sont définis par `kioskview-kiosk.service` (dépôt `~/kioskview`). Ces deux
+> noms doivent correspondre entre l'unité weston kioskview et `launch-kioskdiag.sh`.
+
 ## 1. Identifier le touchscreen
 
 ```bash
