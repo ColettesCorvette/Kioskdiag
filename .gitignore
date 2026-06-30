@@ -1,6 +1,7 @@
-# notes perso sauf le doc de debug 
+# notes perso sauf les docs de debug
 docs/*
 !docs/troubleshooting-affichage-mali-weston.md
+!docs/diagnostic-crash.md
 
 # Bundles extraits des builds Docker 
 dist/
