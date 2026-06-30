@@ -9,7 +9,7 @@ en une ligne `gcc` et weston via le gestionnaire de paquets.
 
 ## Fichier
 
-`libmali-bifrost-g52-g24p0-x11-wayland-gbm.so.xz` variante **combinée**
+`libmali-bifrost-g52-g24p0-x11-wayland-gbm.so.xz`, variante combinée
 x11-wayland-gbm. Ne pas confondre avec `g24p0-gbm` seul, qui cible la mauvaise
 plateforme et ne marche pas.
 

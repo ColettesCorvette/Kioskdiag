@@ -1,18 +1,19 @@
-# Accès diag kioskdiag par geste 4 coins — déploiement
+# Accès diag kioskdiag par geste 4 coins : déploiement
 
-> **Contrat externe** : le socket `wayland-tc` et la base `/run/kioskview-mali`
-> sont définis par `kioskview-kiosk.service` (dépôt `~/kioskview`). Ces deux
-> noms doivent correspondre entre l'unité weston kioskview et `launch-kioskdiag.sh`.
+Le socket `wayland-tc` et la base `/run/kioskview-mali` sont définis par
+kioskview-kiosk.service (dépôt ~/kioskview). Ces deux noms doivent
+correspondre entre l'unité weston kioskview et launch-kioskdiag.sh.
 
 ## 1. Identifier le touchscreen
 
 ```bash
-libinput list-devices        # repérer le périphérique tactile, noter son /dev/input/eventX
+libinput list-devices        # repérer le tactile, noter son /dev/input/eventX
 ```
 
-Ou : `cat /proc/bus/input/devices` (chercher la dalle capacitive).
+Sinon : `cat /proc/bus/input/devices`, chercher la dalle capacitive.
 
-Vérifier qu'aucun grab exclusif : si le geste ne remonte pas alors que weston reçoit le tactile, contrôler que libinput n'EVIOCGRAB pas (cas par défaut : non).
+Si le geste ne remonte pas alors que weston reçoit le tactile, vérifier que
+libinput ne fait pas d'EVIOCGRAB exclusif (par défaut il n'en fait pas).
 
 ## 2. Compiler et poser les binaires (sur la carte)
 
@@ -34,13 +35,15 @@ sudo systemctl status gesture-daemon.service --no-pager
 
 ## 4. Tester
 
-- Taper les 4 coins HG → HD → BD → BG en < 5 s → kioskdiag apparaît plein écran.
-- **Test négatif** : taps au centre / appui simple → ne déclenche PAS kioskdiag.
-- Bouton "Quitter" → retour kioskview.
-- 3 min sans toucher kioskdiag → retour auto kioskview.
+- Taper les 4 coins HG, HD, BD, BG en moins de 5 s : kioskdiag apparaît plein écran.
+- Test négatif : taps au centre ou appui simple ne déclenchent pas kioskdiag.
+- Bouton Quitter : retour kioskview.
+- 3 min sans toucher kioskdiag : retour auto kioskview.
 - Vérifier que kioskview reste réactif au tactile (events non volés).
-- **Survit au reboot** : `sudo reboot`, puis `systemctl is-enabled gesture-daemon` = `enabled` et le geste fonctionne toujours.
-- Calibrer l'ordre des coins : si HG/HD/... ne correspond pas au sens physique, ajuster `EXPECTED[]` dans gesture-daemon.c et recompiler.
+- Survit au reboot : après `sudo reboot`, `systemctl is-enabled gesture-daemon`
+  vaut `enabled` et le geste fonctionne toujours.
+- Calibrer l'ordre des coins : si HG/HD/... ne correspond pas au sens physique,
+  ajuster `EXPECTED[]` dans gesture-daemon.c et recompiler.
 
 ## Logs
 
