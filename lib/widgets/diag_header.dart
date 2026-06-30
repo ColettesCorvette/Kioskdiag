@@ -89,6 +89,9 @@ class DiagHeader extends StatelessWidget {
           IconButton(
             tooltip: 'Quitter',
             icon: const Icon(Icons.close, color: DiagColors.title),
+            iconSize: 32,
+            // Cible tactile élargie : dalle capacitive peu précise sur les bords.
+            constraints: const BoxConstraints(minWidth: 64, minHeight: 64),
             onPressed: onQuit,
           ),
           const SizedBox(width: 4),
