@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import '../models/diagnostic_data.dart';
 import '../theme.dart';
 import '../util/quit.dart';
+import '../widgets/app_footer.dart';
 import '../widgets/diag_header.dart';
 import '../widgets/inactivity_timeout.dart';
+import '../widgets/wave_background.dart';
 import 'connectivite_screen.dart';
 import 'dashboard_screen.dart';
 import 'lecteurs_screen.dart';
@@ -29,55 +31,11 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    Widget shell = Scaffold(
-      backgroundColor: DiagColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: Column(
-              children: [
-                DiagHeader(
-                  title: _data.title,
-                  subtitle: _data.subtitle,
-                  onToggleOrientation: () => setState(
-                    () => _quarterTurns = (_quarterTurns + 1) % 4,
-                  ),
-                  onResetOrientation: () => setState(() => _quarterTurns = 1),
-                  onQuit: quitApp,
-                ),
-                Expanded(child: _body()),
-              ],
-            ),
-          ),
-        ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.sd_storage_outlined),
-            selectedIcon: Icon(Icons.sd_storage),
-            label: 'Lecteurs',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.check_box_outlined),
-            selectedIcon: Icon(Icons.check_box),
-            label: 'Tests',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.wifi),
-            label: 'Connectivité',
-          ),
-        ],
-      ),
+    Widget shell = LayoutBuilder(
+      builder: (context, c) {
+        final landscape = c.maxWidth > c.maxHeight;
+        return landscape ? _landscapeScaffold() : _portraitScaffold();
+      },
     );
 
     shell = InactivityTimeout(
@@ -104,6 +62,110 @@ class _HomeShellState extends State<HomeShell> {
         ),
       ),
     );
+  }
+
+  DiagHeader _header() => DiagHeader(
+        title: _data.title,
+        subtitle: _data.subtitle,
+        onToggleOrientation: () =>
+            setState(() => _quarterTurns = (_quarterTurns + 1) % 4),
+        onResetOrientation: () => setState(() => _quarterTurns = 1),
+        onQuit: quitApp,
+      );
+
+  static const List<NavigationDestination> _destinations = [
+    NavigationDestination(
+      icon: Icon(Icons.home_outlined),
+      selectedIcon: Icon(Icons.home),
+      label: 'Dashboard',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.sd_storage_outlined),
+      selectedIcon: Icon(Icons.sd_storage),
+      label: 'Lecteurs',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.check_box_outlined),
+      selectedIcon: Icon(Icons.check_box),
+      label: 'Tests',
+    ),
+    NavigationDestination(icon: Icon(Icons.wifi), label: 'Connectivité'),
+  ];
+
+  Widget _portraitScaffold() {
+    return Scaffold(
+      backgroundColor: DiagColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Column(
+              children: [
+                _header(),
+                Expanded(child: _body()),
+              ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: _destinations,
+      ),
+    );
+  }
+
+  Widget _landscapeScaffold() {
+    return Scaffold(
+      backgroundColor: DiagColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: _index,
+              onDestinationSelected: (i) => setState(() => _index = i),
+              labelType: NavigationRailLabelType.all,
+              destinations: [
+                for (final d in _destinations)
+                  NavigationRailDestination(
+                    icon: d.icon,
+                    selectedIcon: d.selectedIcon ?? d.icon,
+                    label: Text(d.label),
+                  ),
+              ],
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(
+              child: Stack(
+                children: [
+                  const Positioned.fill(child: WaveBackground()),
+                  Column(
+                    children: [
+                      _header(),
+                      Expanded(child: _bodyLandscape()),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                        child: AppFooter(data: _data),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bodyLandscape() {
+    if (_index == 0) {
+      return DashboardScreen(data: _data, embedFooter: false);
+    }
+    return _body();
   }
 
   Widget _body() {

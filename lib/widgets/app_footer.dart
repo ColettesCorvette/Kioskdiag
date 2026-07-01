@@ -22,19 +22,25 @@ class AppFooter extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _fluxia(),
-                const SizedBox(height: 4),
-                Text(
-                  '${data.copyright} • VERSION ${data.appVersion}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: DiagColors.textMuted,
+            // Flexible : à 600px de large (dalle borne en portrait), la ligne
+            // copyright est trop longue pour tenir sur une seule ligne à côté
+            // de la colonne "Version OS" → on autorise le retour à la ligne
+            // plutôt que de débordér (RenderFlex overflow).
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _fluxia(),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${data.copyright} • VERSION ${data.appVersion}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: DiagColors.textMuted,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
