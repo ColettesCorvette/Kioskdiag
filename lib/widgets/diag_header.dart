@@ -33,31 +33,7 @@ class DiagHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Row(
         children: [
-          // Logo provisoire à remplacer par le vrai asset.
-          Container(
-            width: 54,
-            height: 54,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: SweepGradient(
-                colors: [
-                  Color(0xFF1C8AD6),
-                  Color(0xFF54B948),
-                  Color(0xFFF5A623),
-                  Color(0xFFE0554F),
-                  Color(0xFF9C27B0),
-                  Color(0xFF1C8AD6),
-                ],
-              ),
-            ),
-            child: const Center(
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.sync_alt, size: 18, color: DiagColors.title),
-              ),
-            ),
-          ),
+          Image.asset('assets/logo.png', width: 54, height: 54),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/diagnostic_data.dart';
 import '../theme.dart';
+import '../widgets/app_footer.dart';
 import '../widgets/disk_ring.dart';
 import '../widgets/perf_graph.dart';
 import '../widgets/perf_toggle.dart';
@@ -13,9 +14,13 @@ import '../widgets/uptime_pills.dart';
 /// Onglet Dashboard uptime, espace disque, carte perf mémoire/processeur,
 /// pied de page.
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, required this.data});
+  const DashboardScreen({super.key, required this.data, this.embedFooter = true});
 
   final DiagnosticData data;
+
+  /// En portrait le footer est dans le corps ; en paysage le shell l'affiche
+  /// en barre commune et passe `false` pour éviter le doublon.
+  final bool embedFooter;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -43,6 +48,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final d = widget.data;
+    return LayoutBuilder(
+      builder: (context, c) {
+        final wide = c.maxWidth >= 800;
+        if (wide) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _uptimeCard(d),
+                        const SizedBox(height: 16),
+                        _diskCard(d),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(child: _perfCard(d)),
+                ],
+              ),
+            ),
+          );
+        }
+        return _narrowBody(d);
+      },
+    );
+  }
+
+  Widget _narrowBody(DiagnosticData d) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -71,9 +109,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 16),
           _perfCard(d),
-          const SizedBox(height: 24),
-          _footer(d),
-          const SizedBox(height: 8),
+          if (widget.embedFooter) ...[
+            const SizedBox(height: 24),
+            AppFooter(data: d),
+            const SizedBox(height: 8),
+          ],
         ],
       ),
     );
@@ -238,45 +278,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       );
 
-  Widget _footer(DiagnosticData d) {
-    return Column(
-      children: [
-        const Divider(height: 1),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _fluxia(),
-                const SizedBox(height: 4),
-                Text(
-                  '${d.copyright} • VERSION ${d.appVersion}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: DiagColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text(
-                  'Version OS',
-                  style: TextStyle(fontSize: 12, color: DiagColors.textMuted),
-                ),
-                Text(d.osVersion, style: const TextStyle(fontSize: 13)),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   // Helpers d'affichage.
 
   Widget _stat(String label, String value) {
@@ -359,24 +360,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           TextSpan(text: rest),
-        ],
-      ),
-    );
-  }
-
-  Widget _fluxia() {
-    return RichText(
-      text: const TextSpan(
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF222428),
-          letterSpacing: 0.5,
-        ),
-        children: [
-          TextSpan(text: 'STREAML'),
-          TextSpan(text: 'O', style: TextStyle(color: DiagColors.title)),
-          TextSpan(text: 'R'),
         ],
       ),
     );
