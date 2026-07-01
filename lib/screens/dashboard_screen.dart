@@ -48,6 +48,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final d = widget.data;
+    return LayoutBuilder(
+      builder: (context, c) {
+        final wide = c.maxWidth >= 900;
+        if (wide) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _uptimeCard(d),
+                        const SizedBox(height: 16),
+                        _diskCard(d),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(child: _perfCard(d)),
+                ],
+              ),
+            ),
+          );
+        }
+        return _narrowBody(d);
+      },
+    );
+  }
+
+  Widget _narrowBody(DiagnosticData d) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
