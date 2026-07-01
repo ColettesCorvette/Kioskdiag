@@ -50,7 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final d = widget.data;
     return LayoutBuilder(
       builder: (context, c) {
-        final wide = c.maxWidth >= 900;
+        final wide = c.maxWidth >= 800;
         if (wide) {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
