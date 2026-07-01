@@ -8,6 +8,7 @@ import '../widgets/app_footer.dart';
 import '../widgets/diag_header.dart';
 import '../widgets/inactivity_timeout.dart';
 import '../widgets/wave_background.dart';
+import '../util/rotation_env.dart';
 import 'connectivite_screen.dart';
 import 'dashboard_screen.dart';
 import 'lecteurs_screen.dart';
@@ -24,10 +25,13 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   final DiagnosticData _data = DiagnosticData.mock();
   int _index = 0;
-  // Portrait par défaut : la dalle 1024x600 est montée en portrait sur la borne.
-  // La rotation se fait dans l'appli (RotatedBox) car le transform output de
-  // weston fait crasher l'embedder eLinux. Bouton double-flèche = ajustement.
-  int _quarterTurns = 1; // rotation de l'écran, par quart de tour
+  // Rotation par quart de tour, appliquée dans l'appli (RotatedBox) car le
+  // transform output de weston fait crasher l'embedder eLinux. Défaut
+  // portrait (0), ajustable par borne via KIOSKDIAG_ROTATION (Puppet) pour
+  // les tourniquets montés dans l'autre sens — voir util/rotation_env.dart.
+  // Bouton double-flèche = ajustement manuel, appui long = retour au défaut.
+  static final int _defaultQuarterTurns = quarterTurnsFromEnv() ?? 0;
+  int _quarterTurns = _defaultQuarterTurns;
 
   @override
   Widget build(BuildContext context) {
@@ -49,9 +53,9 @@ class _HomeShellState extends State<HomeShell> {
       return RotatedBox(quarterTurns: _quarterTurns, child: shell);
     }
 
-    // En preview web, on simule la dalle : portrait 600×1024 aux quarts impairs,
-    // paysage 1024×600 aux quarts pairs (pour tester les deux au bouton rotation).
-    final portrait = _quarterTurns.isOdd;
+    // En preview web, on simule la dalle : portrait 600×1024 aux quarts pairs
+    // (défaut), paysage 1024×600 aux quarts impairs (bouton rotation).
+    final portrait = _quarterTurns.isEven;
     final panel = portrait ? const Size(600, 1024) : const Size(1024, 600);
     return ColoredBox(
       color: const Color(0xFFDADCE0),
@@ -71,7 +75,8 @@ class _HomeShellState extends State<HomeShell> {
         subtitle: _data.subtitle,
         onToggleOrientation: () =>
             setState(() => _quarterTurns = (_quarterTurns + 1) % 4),
-        onResetOrientation: () => setState(() => _quarterTurns = 1),
+        onResetOrientation: () =>
+            setState(() => _quarterTurns = _defaultQuarterTurns),
         onQuit: quitApp,
       );
 
@@ -130,6 +135,7 @@ class _HomeShellState extends State<HomeShell> {
               selectedIndex: _index,
               onDestinationSelected: (i) => setState(() => _index = i),
               labelType: NavigationRailLabelType.all,
+              groupAlignment: 0.0,
               destinations: [
                 for (final d in _destinations)
                   NavigationRailDestination(

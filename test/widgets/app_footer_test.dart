@@ -11,6 +11,6 @@ void main() {
     );
     expect(find.textContaining(data.appVersion), findsOneWidget);
     expect(find.textContaining(data.osVersion), findsOneWidget);
-    expect(find.textContaining('STREAML'), findsOneWidget);
+    expect(find.bySemanticsLabel('FLUXIA'), findsOneWidget);
   });
 }

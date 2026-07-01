@@ -59,20 +59,9 @@ class AppFooter extends StatelessWidget {
   }
 
   Widget _fluxia() {
-    return const Text.rich(
-      TextSpan(
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF222428),
-          letterSpacing: 0.5,
-        ),
-        children: [
-          TextSpan(text: 'STREAML'),
-          TextSpan(text: 'O', style: TextStyle(color: DiagColors.title)),
-          TextSpan(text: 'R'),
-        ],
-      ),
+    return Semantics(
+      label: 'FLUXIA',
+      child: Image.asset('assets/fluxia_wordmark.png', height: 20),
     );
   }
 }
