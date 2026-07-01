@@ -49,15 +49,17 @@ class _HomeShellState extends State<HomeShell> {
       return RotatedBox(quarterTurns: _quarterTurns, child: shell);
     }
 
-    // En preview web on simule la dalle portrait 600×1024 pivotée et mise à
-    // l'échelle pour tenir dans la fenêtre.
+    // En preview web, on simule la dalle : portrait 600×1024 aux quarts impairs,
+    // paysage 1024×600 aux quarts pairs (pour tester les deux au bouton rotation).
+    final portrait = _quarterTurns.isOdd;
+    final panel = portrait ? const Size(600, 1024) : const Size(1024, 600);
     return ColoredBox(
       color: const Color(0xFFDADCE0),
       child: Center(
         child: FittedBox(
           child: RotatedBox(
             quarterTurns: _quarterTurns,
-            child: SizedBox(width: 600, height: 1024, child: shell),
+            child: SizedBox(width: panel.width, height: panel.height, child: shell),
           ),
         ),
       ),
