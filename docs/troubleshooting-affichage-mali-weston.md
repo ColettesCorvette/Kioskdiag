@@ -103,8 +103,9 @@ gcc -shared -fPIC -O2 -o eglshim.so eglshim.c -ldl
   `xdg_surface geometry (600x1024) larger than fullscreen state (1024x600)`.
 
 Fix : la rotation se fait dans le code Dart, via un RotatedBox `_quarterTurns`
-dans lib/screens/home_shell.dart (défaut 1). Le bouton double-flèche du header
-tourne d'un quart, l'appui long remet le portrait.
+dans lib/screens/home_shell.dart (défaut 0, surchargeable par borne avec la
+variable d'env KIOSKDIAG_ROTATION). Le bouton double-flèche du header tourne
+d'un quart, l'appui long revient à l'orientation par défaut.
 
 ### 4. weston a besoin d'un vrai VT
 
