@@ -37,8 +37,11 @@ echo ">> weston"
 LD_LIBRARY_PATH="$SHIM/gbm" weston --backend=drm --socket="$WDISP" \
     --config=/run/weston.ini --log=/tmp/weston.log &
 WPID=$!
+# Ne jamais laisser weston orphelin : le tuer (et attendre sa sortie) quel que
+# soit le chemin de sortie du script (client mort, erreur, signal).
+trap 'kill "$WPID" 2>/dev/null || true; wait "$WPID" 2>/dev/null || true' EXIT INT TERM
 i=0; while [ ! -S "$XDG_RUNTIME_DIR/$WDISP" ] && [ "$i" -lt 40 ]; do i=$((i+1)); sleep 0.25; done
-[ -S "$XDG_RUNTIME_DIR/$WDISP" ] || { echo "weston KO"; cat /tmp/weston.log; kill "$WPID" 2>/dev/null||true; exit 1; }
+[ -S "$XDG_RUNTIME_DIR/$WDISP" ] || { echo "weston KO"; cat /tmp/weston.log; exit 1; }
 sleep 1
 
 echo ">> kioskdiag (eLinux/wayland, Mali g24p0 hardware)"
