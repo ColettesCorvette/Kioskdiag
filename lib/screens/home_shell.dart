@@ -16,7 +16,16 @@ import 'tests_screen.dart';
 
 /// Écran principal en-tête, contenu de l'onglet courant, barre de navigation.
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({super.key, this.onQuit = quitApp, this.initialQuarterTurns});
+
+  /// Ferme l'appli. Par défaut `quitApp` (exit(0) sur la borne, no-op web) ;
+  /// les tests injectent un spy pour ne jamais risquer un exit(0) réel.
+  final VoidCallback onQuit;
+
+  /// Rotation initiale, par défaut `quarterTurnsFromEnv() ?? 0`. Les tests
+  /// passent `0` explicitement pour rester insensibles à KIOSKDIAG_ROTATION
+  /// posée sur la machine de dev/CI.
+  final int? initialQuarterTurns;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -30,8 +39,9 @@ class _HomeShellState extends State<HomeShell> {
   // portrait (0), ajustable par borne via KIOSKDIAG_ROTATION (Puppet) pour
   // les tourniquets montés dans l'autre sens — voir util/rotation_env.dart.
   // Bouton double-flèche = ajustement manuel, appui long = retour au défaut.
-  static final int _defaultQuarterTurns = quarterTurnsFromEnv() ?? 0;
-  int _quarterTurns = _defaultQuarterTurns;
+  late final int _defaultQuarterTurns =
+      widget.initialQuarterTurns ?? (quarterTurnsFromEnv() ?? 0);
+  late int _quarterTurns = _defaultQuarterTurns;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +54,7 @@ class _HomeShellState extends State<HomeShell> {
 
     shell = InactivityTimeout(
       timeout: kDiagInactivityTimeout,
-      onTimeout: quitApp,
+      onTimeout: widget.onQuit,
       child: shell,
     );
 
@@ -77,7 +87,7 @@ class _HomeShellState extends State<HomeShell> {
             setState(() => _quarterTurns = (_quarterTurns + 1) % 4),
         onResetOrientation: () =>
             setState(() => _quarterTurns = _defaultQuarterTurns),
-        onQuit: quitApp,
+        onQuit: widget.onQuit,
       );
 
   static const List<NavigationDestination> _destinations = [
