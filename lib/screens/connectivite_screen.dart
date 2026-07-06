@@ -1,20 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../services/ethernet_status.dart';
 import '../theme.dart';
 import '../util/ipv4.dart';
 import '../widgets/onscreen_keypad.dart';
+import '../widgets/status_banner.dart';
 
 /// Onglet Connectivité : configuration réseau du tourniquet (statique / DHCP),
 /// adresse du serveur Fluxia, et actions de test / sauvegarde. La saisie se
 /// fait via le pavé numérique embarqué [OnScreenKeypad].
 class ConnectiviteScreen extends StatefulWidget {
-  const ConnectiviteScreen({super.key});
+  const ConnectiviteScreen({super.key, this.ethernetStream});
+
+  /// Stream de l'état du câble Ethernet. Par défaut `ethernetConnected()` ;
+  /// les tests injectent un `Stream<bool>` canné (même pattern que
+  /// `HomeShell.onQuit`/`initialQuarterTurns`).
+  final Stream<bool>? ethernetStream;
 
   @override
   State<ConnectiviteScreen> createState() => _ConnectiviteScreenState();
 }
 
 class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
+  late final Stream<bool> _ethernetStream =
+      widget.ethernetStream ?? ethernetConnected();
+
   bool _dhcp = false;
 
   final _ip = TextEditingController(text: '192.168.10.41');
@@ -107,6 +119,8 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                _ethernetBanner(),
+                const SizedBox(height: 14),
                 _sectionTitle('CONFIGURATION RÉSEAU DU TOURNIQUET'),
                 const SizedBox(height: 10),
                 _modeToggle(),
@@ -133,6 +147,26 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
             onClose: _closeKeypad,
           ),
       ],
+    );
+  }
+
+  Widget _ethernetBanner() {
+    return StreamBuilder<bool>(
+      stream: _ethernetStream,
+      builder: (context, snapshot) {
+        final connected = snapshot.data ?? false;
+        return connected
+            ? const StatusBanner(
+                color: DiagColors.accentDisk,
+                icon: Icons.check_circle_outline,
+                text: 'Câble Ethernet détecté',
+              )
+            : const StatusBanner(
+                color: DiagColors.red,
+                icon: Icons.error_outline,
+                text: 'Câble Ethernet non détecté',
+              );
+      },
     );
   }
 

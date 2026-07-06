@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kioskdiag/screens/connectivite_screen.dart';
@@ -81,7 +83,13 @@ void main() {
 
       // Fermer le clavier
       await tester.tap(find.byIcon(Icons.keyboard_arrow_down), warnIfMissed: false);
-      await tester.pump();
+      // pumpAndSettle (et non un simple pump) : la fermeture du clavier
+      // déclenche unfocus(), qui lance l'animation de disparition du
+      // curseur clignotant. Avec le bandeau Ethernet (F2) qui décale
+      // désormais "Mode DHCP" plus bas dans la mise en page, un seul pump()
+      // laisse cette transition en cours et le tap suivant peut rater son
+      // hit-test.
+      await tester.pumpAndSettle();
 
       // Basculer en mode DHCP
       await tester.tap(find.text('Mode DHCP'));
@@ -252,7 +260,13 @@ void main() {
     );
 
     await tester.tap(find.byType(TextField).at(3)); // focaliser le DNS
-    await tester.pump();
+    // pumpAndSettle : laisse l'animation d'apparition du curseur clignotant
+    // du champ focalisé se terminer. Avec le bandeau Ethernet (F2), qui
+    // décale désormais "Mode DHCP" plus bas dans la mise en page, un simple
+    // pump() laissait cette transition en cours et le tap suivant ratait
+    // parfois son hit-test — le test passait alors sans avoir réellement
+    // basculé le mode DHCP (faux positif silencieux).
+    await tester.pumpAndSettle();
     expect(find.byType(OnScreenKeypad), findsOneWidget);
 
     await tester.tap(find.text('Mode DHCP'));
@@ -276,5 +290,61 @@ void main() {
     await tester.pump();
 
     expect(find.byType(OnScreenKeypad), findsNothing); // fermé
+  });
+
+  testWidgets('F2: câble détecté → bandeau vert "Câble Ethernet détecté"',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ConnectiviteScreen(ethernetStream: Stream.value(true)),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Câble Ethernet détecté'), findsOneWidget);
+    expect(find.text('Câble Ethernet non détecté'), findsNothing);
+  });
+
+  testWidgets(
+      'F2: câble débranché → bandeau rouge "Câble Ethernet non détecté"',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ConnectiviteScreen(ethernetStream: Stream.value(false)),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Câble Ethernet non détecté'), findsOneWidget);
+    expect(find.text('Câble Ethernet détecté'), findsNothing);
+  });
+
+  testWidgets('F2: transition branché → débranché met le bandeau à jour',
+      (tester) async {
+    final controller = StreamController<bool>();
+    addTearDown(controller.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ConnectiviteScreen(ethernetStream: controller.stream),
+        ),
+      ),
+    );
+
+    controller.add(true);
+    await tester.pump();
+    expect(find.text('Câble Ethernet détecté'), findsOneWidget);
+
+    controller.add(false);
+    await tester.pump();
+    // StreamController.add() planifie l'émission en microtask : un second
+    // pump() est nécessaire pour que le StreamBuilder la reçoive avant
+    // l'assertion.
+    await tester.pump();
+    expect(find.text('Câble Ethernet non détecté'), findsOneWidget);
   });
 }
