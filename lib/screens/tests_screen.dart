@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../widgets/section_card.dart';
+import '../widgets/status_banner.dart';
 
 enum _RotationDir { horaire, antiHoraire }
 
@@ -127,7 +128,7 @@ class _TestsScreenState extends State<TestsScreen> {
 
   Widget _rotationBanner() {
     if (_validatedDir == null) {
-      return _banner(
+      return const StatusBanner(
         color: DiagColors.textMuted,
         icon: Icons.info_outline,
         text: 'En attente d\'une commande de rotation.',
@@ -136,41 +137,10 @@ class _TestsScreenState extends State<TestsScreen> {
     final sens = _validatedDir == _RotationDir.horaire
         ? 'horaire'
         : 'anti-horaire';
-    return _banner(
+    return StatusBanner(
       color: DiagColors.accentDisk,
       icon: Icons.check,
       text: 'Rotation du bras dans le sens $sens validée.',
-    );
-  }
-
-  Widget _banner({
-    required Color color,
-    required IconData icon,
-    required String text,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: color,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
