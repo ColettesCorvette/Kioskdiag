@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../util/ipv4.dart';
 import '../widgets/onscreen_keypad.dart';
 
 /// Onglet Connectivité : configuration réseau du tourniquet (statique / DHCP),
@@ -21,6 +22,10 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
   final _gateway = TextEditingController(text: '192.168.10.1');
   final _dns = TextEditingController(text: '192.168.10.1');
   final _serverIp = TextEditingController(text: '192.168.10.41');
+
+  /// Message d'erreur par champ, vide tant qu'aucune sauvegarde invalide n'a
+  /// eu lieu.
+  final Map<TextEditingController, String> _errors = {};
 
   /// Champ qui reçoit la frappe du pavé, null si le pavé est masqué.
   TextEditingController? _active;
@@ -47,16 +52,21 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
     if (c == null) return;
     final sel = c.selection;
     final text = c.text;
+    final String newText;
+    final int newOffset;
     if (sel.isValid) {
-      final newText = text.replaceRange(sel.start, sel.end, ch);
-      c.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(offset: sel.start + ch.length),
-      );
+      newText = text.replaceRange(sel.start, sel.end, ch);
+      newOffset = sel.start + ch.length;
     } else {
-      c.text = text + ch;
-      c.selection = TextSelection.collapsed(offset: c.text.length);
+      newText = text + ch;
+      newOffset = newText.length;
     }
+    if (newText.length > 15) return; // "255.255.255.255" = 15 caractères max.
+    if (_errors.remove(c) != null) setState(() {});
+    c.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newOffset),
+    );
   }
 
   void _onBackspace() {
@@ -64,6 +74,7 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
     if (c == null) return;
     final sel = c.selection;
     final text = c.text;
+    if (_errors.remove(c) != null) setState(() {});
     if (sel.isValid && sel.start != sel.end) {
       final newText = text.replaceRange(sel.start, sel.end, '');
       c.value = TextEditingValue(
@@ -198,32 +209,51 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
     bool alwaysEnabled = false,
   }) {
     final enabled = alwaysEnabled || !_dhcp;
+    final error = _errors[controller];
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: TextField(
-        controller: controller,
-        enabled: enabled,
-        // Pas de clavier système : la saisie passe par OnScreenKeypad.
-        readOnly: true,
-        showCursor: true,
-        onTap: () => _focus(controller),
-        style: const TextStyle(fontSize: 14, color: Color(0xFF222428)),
-        decoration: InputDecoration(
-          labelText: label,
-          isDense: true,
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFCBCFD6)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            enabled: enabled,
+            // Pas de clavier système : la saisie passe par OnScreenKeypad.
+            readOnly: true,
+            showCursor: true,
+            onTap: () => _focus(controller),
+            style: const TextStyle(fontSize: 14, color: Color(0xFF222428)),
+            decoration: InputDecoration(
+              labelText: label,
+              isDense: true,
+              floatingLabelBehavior: FloatingLabelBehavior.always,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: error != null ? Colors.red : const Color(0xFFCBCFD6),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: error != null ? Colors.red : DiagColors.title,
+                  width: 2,
+                ),
+              ),
+            ),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: DiagColors.title, width: 2),
-          ),
-        ),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, left: 4),
+              child: Text(
+                error,
+                style: const TextStyle(fontSize: 12, color: Colors.red),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -288,6 +318,20 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
 
   void _save() {
     _closeKeypad();
+    final toValidate = <TextEditingController>{
+      _dns,
+      _serverIp,
+      if (!_dhcp) ...{_ip, _mask, _gateway},
+    };
+    setState(() {
+      _errors.clear();
+      for (final c in toValidate) {
+        if (!isValidIpv4(c.text)) {
+          _errors[c] = 'Adresse IPv4 invalide';
+        }
+      }
+    });
+    if (_errors.isNotEmpty) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Configuration réseau enregistrée.')),
     );
