@@ -34,4 +34,25 @@ void main() {
     await tester.pump(const Duration(seconds: 31));
     expect(fired, 1);
   });
+
+  testWidgets('un mouvement continu (drag) réarme le timer', (tester) async {
+    var fired = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: InactivityTimeout(
+        timeout: const Duration(minutes: 3),
+        onTimeout: () => fired++,
+        child: const SizedBox.expand(),
+      ),
+    ));
+    final gesture = await tester.startGesture(const Offset(10, 10));
+    await tester.pump(const Duration(minutes: 2, seconds: 30));
+    await gesture.moveBy(const Offset(5, 0)); // onPointerMove → réarme
+    await tester.pump(const Duration(minutes: 2, seconds: 30));
+    expect(fired, 0);
+    await gesture.up(); // onPointerUp → réarme aussi
+    await tester.pump(const Duration(minutes: 2, seconds: 59));
+    expect(fired, 0);
+    await tester.pump(const Duration(seconds: 2));
+    expect(fired, 1);
+  });
 }

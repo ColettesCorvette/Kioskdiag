@@ -47,6 +47,8 @@ class _InactivityTimeoutState extends State<InactivityTimeout> {
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) => _arm(),
+      onPointerMove: (_) => _arm(),
+      onPointerUp: (_) => _arm(),
       child: widget.child,
     );
   }
