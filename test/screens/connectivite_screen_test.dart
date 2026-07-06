@@ -129,4 +129,102 @@ void main() {
       expect(ipField.controller!.text.length, 15);
     },
   );
+
+  testWidgets('G: insertion au milieu du texte (curseur positionné, pas en fin)',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+    );
+    await tester.tap(find.byType(TextField).at(0));
+    await tester.pump();
+
+    final controller =
+        tester.widget<TextField>(find.byType(TextField).at(0)).controller!;
+    // Curseur collé juste après "192" dans "192.168.10.41".
+    controller.selection = const TextSelection.collapsed(offset: 3);
+
+    await tester.tap(find.text('9'));
+    await tester.pump();
+
+    expect(controller.text, '1929.168.43.241');
+    expect(controller.selection, const TextSelection.collapsed(offset: 4));
+  });
+
+  testWidgets('G: taper un chiffre remplace une sélection étendue',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+    );
+    await tester.tap(find.byType(TextField).at(0));
+    await tester.pump();
+
+    final controller =
+        tester.widget<TextField>(find.byType(TextField).at(0)).controller!;
+    // Sélectionne "192" (offsets 0-3) dans "192.168.10.41".
+    controller.selection = const TextSelection(baseOffset: 0, extentOffset: 3);
+
+    await tester.tap(find.text('7'));
+    await tester.pump();
+
+    expect(controller.text, '7.168.43.241');
+    expect(controller.selection, const TextSelection.collapsed(offset: 1));
+  });
+
+  testWidgets('G: backspace efface une sélection étendue', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+    );
+    await tester.tap(find.byType(TextField).at(0));
+    await tester.pump();
+
+    final controller =
+        tester.widget<TextField>(find.byType(TextField).at(0)).controller!;
+    controller.selection = const TextSelection(baseOffset: 0, extentOffset: 3);
+
+    await tester.tap(find.byIcon(Icons.backspace_outlined));
+    await tester.pump();
+
+    expect(controller.text, '.168.43.241');
+    expect(controller.selection, const TextSelection.collapsed(offset: 0));
+  });
+
+  testWidgets(
+      'G: backspace avec le curseur en tout début de champ ne supprime rien',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+    );
+    await tester.tap(find.byType(TextField).at(0));
+    await tester.pump();
+
+    final controller =
+        tester.widget<TextField>(find.byType(TextField).at(0)).controller!;
+    controller.selection = const TextSelection.collapsed(offset: 0);
+
+    await tester.tap(find.byIcon(Icons.backspace_outlined));
+    await tester.pump();
+
+    expect(controller.text, '192.168.10.41'); // inchangé
+  });
+
+  testWidgets('G: backspace sur un champ déjà vide ne fait rien (pas de crash)',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+    );
+    await tester.tap(find.byType(TextField).at(0));
+    await tester.pump();
+    for (var i = 0; i < 14; i++) {
+      await tester.tap(find.byIcon(Icons.backspace_outlined));
+      await tester.pump();
+    }
+    final controller =
+        tester.widget<TextField>(find.byType(TextField).at(0)).controller!;
+    expect(controller.text, '');
+
+    await tester.tap(find.byIcon(Icons.backspace_outlined));
+    await tester.pump();
+    expect(controller.text, '');
+    expect(tester.takeException(), isNull);
+  });
 }

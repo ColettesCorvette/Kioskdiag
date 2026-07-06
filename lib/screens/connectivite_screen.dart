@@ -87,7 +87,11 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
         text: newText,
         selection: TextSelection.collapsed(offset: sel.start - 1),
       );
-    } else if (text.isNotEmpty) {
+    } else if (!sel.isValid && text.isNotEmpty) {
+      // Repli pour un champ jamais touché (sélection pas encore positionnée) :
+      // pas de curseur connu, on efface depuis la fin. Si la sélection EST
+      // valide et collée à l'offset 0, il n'y a rien avant le curseur à
+      // effacer : ne rien faire (c'est le cas que ce correctif ajoute).
       c.text = text.substring(0, text.length - 1);
       c.selection = TextSelection.collapsed(offset: c.text.length);
     }
