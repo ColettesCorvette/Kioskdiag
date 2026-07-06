@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/diagnostic_data.dart';
 import '../theme.dart';
+import '../util/puppet_mtime.dart';
 
 /// Pied de page partagé : logo texte FLUXIA, copyright/version appli à
 /// gauche, version OS à droite. Utilisé dans le corps du Dashboard (portrait)
@@ -33,7 +34,7 @@ class AppFooter extends StatelessWidget {
                   _fluxia(),
                   const SizedBox(height: 4),
                   Text(
-                    '${data.copyright} • VERSION ${data.appVersion}',
+                    '${data.copyright} • ${puppetLastRunLabel()}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: DiagColors.textMuted,
