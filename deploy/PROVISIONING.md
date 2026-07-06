@@ -134,7 +134,7 @@ Trois fichiers :
   séquence 4 coins. Compilé depuis `deploy/gesture-daemon.c`.
 - `/usr/local/bin/launch-kioskdiag.sh` — lance kioskdiag comme client de
   `wayland-tc`. Vient de `deploy/launch-kioskdiag.sh`. Mono-instance via
-  `/run/kioskdiag.pid`.
+  verrou `flock` sur `/run/kioskdiag.lock`.
 - `/etc/systemd/system/gesture-daemon.service` — lance le démon au boot,
   après kioskview-kiosk.
 
