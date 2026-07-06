@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
@@ -100,7 +101,7 @@ class _GraphPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GraphPainter old) =>
-      old.series != series ||
+      !listEquals(old.series, series) ||
       old.maxValue != maxValue ||
       old.lineColor != lineColor;
 }
