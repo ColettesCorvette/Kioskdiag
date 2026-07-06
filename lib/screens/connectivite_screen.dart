@@ -114,7 +114,7 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
                 _field('Adresse IP', _ip),
                 _field('Masque de sous-réseau', _mask),
                 _field('Passerelle', _gateway),
-                _field('DNS', _dns),
+                _field('DNS', _dns, alwaysEnabled: true),
                 const SizedBox(height: 18),
                 _sectionTitle('CONFIGURATION SERVEUR DE FLUXIA'),
                 const SizedBox(height: 10),
@@ -162,7 +162,9 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
           _modeTab(label: 'Mode DHCP', selected: _dhcp, onTap: () {
             setState(() {
               _dhcp = true;
-              _active = null;
+              // Ne fermer le pavé que si le champ actif devient grisé par le
+              // basculement (DNS et IP serveur Fluxia restent éditables).
+              if (_active != _dns && _active != _serverIp) _active = null;
             });
           }),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kioskdiag/screens/connectivite_screen.dart';
+import 'package:kioskdiag/widgets/onscreen_keypad.dart';
 
 void main() {
   testWidgets(
@@ -226,5 +227,54 @@ void main() {
     await tester.pump();
     expect(controller.text, '');
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('F3: bascule Statique→DHCP : DNS reste éditable, IP grisée',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+    );
+
+    await tester.tap(find.text('Mode DHCP'));
+    await tester.pump();
+
+    final ipField = tester.widget<TextField>(find.byType(TextField).at(0));
+    final dnsField = tester.widget<TextField>(find.byType(TextField).at(3));
+    expect(ipField.enabled, isFalse);
+    expect(dnsField.enabled, isTrue);
+  });
+
+  testWidgets(
+      'F3: le pavé reste ouvert si le DNS était actif au moment du basculement',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+    );
+
+    await tester.tap(find.byType(TextField).at(3)); // focaliser le DNS
+    await tester.pump();
+    expect(find.byType(OnScreenKeypad), findsOneWidget);
+
+    await tester.tap(find.text('Mode DHCP'));
+    await tester.pump();
+
+    expect(find.byType(OnScreenKeypad), findsOneWidget); // toujours ouvert
+  });
+
+  testWidgets(
+      'F3: le pavé se ferme si le champ actif devient grisé au basculement',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+    );
+
+    await tester.tap(find.byType(TextField).at(0)); // focaliser l'IP
+    await tester.pump();
+    expect(find.byType(OnScreenKeypad), findsOneWidget);
+
+    await tester.tap(find.text('Mode DHCP'));
+    await tester.pump();
+
+    expect(find.byType(OnScreenKeypad), findsNothing); // fermé
   });
 }
