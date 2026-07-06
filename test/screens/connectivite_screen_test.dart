@@ -52,4 +52,81 @@ void main() {
       expect(find.text('Configuration réseau enregistrée.'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'A3: DHCP + DNS invalide → erreur affichée, pas de succès',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      );
+
+      // Invalider le DNS en mode Statique (DNS est le 4e TextField, index 3)
+      await tester.tap(find.byType(TextField).at(3));
+      await tester.pump();
+
+      // Vider le champ DNS (14 backspace pour "192.168.10.1")
+      for (var i = 0; i < 14; i++) {
+        await tester.tap(find.byIcon(Icons.backspace_outlined));
+        await tester.pump();
+      }
+
+      // Saisir une valeur invalide "1.2.3"
+      for (final k in ['1', '.', '2', '.', '3']) {
+        await tester.tap(find.text(k));
+        await tester.pump();
+      }
+
+      // Fermer le clavier
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down), warnIfMissed: false);
+      await tester.pump();
+
+      // Basculer en mode DHCP
+      await tester.tap(find.text('Mode DHCP'));
+      await tester.pump();
+
+      // Tapper sur save
+      await tester.tap(find.byIcon(Icons.save));
+      await tester.pump();
+
+      // Vérifier que l'erreur est affichée et le succès absent
+      // (car le DNS est invalide, et en DHCP le DNS est toujours validé)
+      expect(find.text('Adresse IPv4 invalide'), findsOneWidget);
+      expect(find.text('Configuration réseau enregistrée.'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'A3: insertion refusée au-delà de 15 caractères',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      );
+
+      // Focaliser le champ IP tourniquet (index 0)
+      // Valeur initiale : '192.168.10.41' = 14 caractères
+      await tester.tap(find.byType(TextField).at(0));
+      await tester.pump();
+
+      // Vérifier que la valeur initiale a 14 caractères
+      TextField ipField = tester.widget<TextField>(find.byType(TextField).at(0));
+      expect(ipField.controller!.text.length, 14);
+
+      // Tapper un chiffre pour atteindre 15 (accepté)
+      await tester.tap(find.text('5'));
+      await tester.pump();
+      ipField = tester.widget<TextField>(find.byType(TextField).at(0));
+      expect(ipField.controller!.text.length, 15);
+
+      // Tapper un autre chiffre pour dépasser 15 (refusé)
+      await tester.tap(find.text('5'));
+      await tester.pump();
+      ipField = tester.widget<TextField>(find.byType(TextField).at(0));
+      // Doit rester à 15 caractères
+      expect(ipField.controller!.text.length, 15);
+    },
+  );
 }
