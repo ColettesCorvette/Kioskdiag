@@ -18,6 +18,9 @@ class TestsScreen extends StatefulWidget {
 
 class _TestsScreenState extends State<TestsScreen> {
   _RotationDir? _validatedDir;
+  // État simulé en attendant le vrai matériel (F4) : sens détecté par le
+  // test du bouton poussoir, calé sur la dernière rotation commandée.
+  _RotationDir _detectedSens = _RotationDir.horaire;
 
   // Test du bouton poussoir de sortie.
   bool _buttonPressed = false;
@@ -41,6 +44,7 @@ class _TestsScreenState extends State<TestsScreen> {
     setState(() {
       _buttonPressed = true;
       _rotationDetected = false;
+      if (_validatedDir != null) _detectedSens = _validatedDir!;
     });
     _rotationTimer = Timer(const Duration(milliseconds: 1200), () {
       if (mounted) setState(() => _rotationDetected = true);
@@ -314,6 +318,8 @@ class _TestsScreenState extends State<TestsScreen> {
   }
 
   Widget _detectedPill() {
+    final label =
+        _detectedSens == _RotationDir.horaire ? 'Horaire' : 'Anti-Horaire';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -322,15 +328,15 @@ class _TestsScreenState extends State<TestsScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: DiagColors.accentDisk.withValues(alpha: 0.5)),
       ),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check, color: DiagColors.accentDisk, size: 16),
-          SizedBox(width: 6),
+          const Icon(Icons.check, color: DiagColors.accentDisk, size: 16),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
-              'Sortie sens Horaire détectée',
-              style: TextStyle(
+              'Sortie sens $label détectée',
+              style: const TextStyle(
                 color: DiagColors.accentDisk,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
