@@ -70,4 +70,26 @@ void main() {
     await tester.pump();
     expect(quitCalls, 1);
   });
+
+  testWidgets(
+      "A1: uptime ne se réinitialise pas en changeant d'onglet",
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(600, 1024));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      const MaterialApp(home: HomeShell(initialQuarterTurns: 0)),
+    );
+
+    // Mock : 22 secondes au départ. +3 s (pas de retenue de minute) → 25.
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.text('25'), findsOneWidget);
+
+    await tester.tap(find.text('Lecteurs'));
+    await tester.pump();
+    await tester.tap(find.text('Dashboard'));
+    await tester.pump();
+
+    expect(find.text('22'), findsNothing);
+    expect(find.text('25'), findsOneWidget);
+  });
 }

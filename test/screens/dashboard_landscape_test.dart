@@ -12,7 +12,11 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: DashboardScreen(data: DiagnosticData.mock(), embedFooter: false),
+          body: DashboardScreen(
+            data: DiagnosticData.mock(),
+            uptime: DiagnosticData.mock().uptime,
+            embedFooter: false,
+          ),
         ),
       ),
     );
@@ -31,7 +35,11 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: DashboardScreen(data: DiagnosticData.mock(), embedFooter: false),
+          body: DashboardScreen(
+            data: DiagnosticData.mock(),
+            uptime: DiagnosticData.mock().uptime,
+            embedFooter: false,
+          ),
         ),
       ),
     );

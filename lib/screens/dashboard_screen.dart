@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../models/diagnostic_data.dart';
@@ -14,9 +12,19 @@ import '../widgets/uptime_pills.dart';
 /// Onglet Dashboard uptime, espace disque, carte perf mémoire/processeur,
 /// pied de page.
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, required this.data, this.embedFooter = true});
+  const DashboardScreen({
+    super.key,
+    required this.data,
+    required this.uptime,
+    this.embedFooter = true,
+  });
 
   final DiagnosticData data;
+
+  /// Uptime courant. Calculé et incrémenté par un timer unique dans
+  /// HomeShell (voir A1) : le reconstruire ici le ferait repartir de zéro à
+  /// chaque changement d'onglet.
+  final Duration uptime;
 
   /// En portrait le footer est dans le corps ; en paysage le shell l'affiche
   /// en barre commune et passe `false` pour éviter le doublon.
@@ -27,23 +35,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late Duration _uptime = widget.data.uptime;
-  late Timer _timer;
   bool _cpuSelected = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() => _uptime += const Duration(seconds: 1));
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _uptimeCard(DiagnosticData d) => SectionCard(
         accent: DiagColors.accentUptime,
         title: 'Tourniquet en route depuis...',
-        child: UptimePills(uptime: _uptime),
+        child: UptimePills(uptime: widget.uptime),
       );
 
   Widget _diskCard(DiagnosticData d) => SectionCard(

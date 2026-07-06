@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
@@ -42,6 +44,22 @@ class _HomeShellState extends State<HomeShell> {
   late final int _defaultQuarterTurns =
       widget.initialQuarterTurns ?? (quarterTurnsFromEnv() ?? 0);
   late int _quarterTurns = _defaultQuarterTurns;
+  late Duration _uptime = _data.uptime;
+  late final Timer _uptimeTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _uptimeTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      setState(() => _uptime += const Duration(seconds: 1));
+    });
+  }
+
+  @override
+  void dispose() {
+    _uptimeTimer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +138,7 @@ class _HomeShellState extends State<HomeShell> {
             child: Column(
               children: [
                 _header(),
-                Expanded(child: _body()),
+                Expanded(child: _body(embedFooter: true)),
               ],
             ),
           ),
@@ -163,7 +181,7 @@ class _HomeShellState extends State<HomeShell> {
                   Column(
                     children: [
                       _header(),
-                      Expanded(child: _bodyLandscape()),
+                      Expanded(child: _body(embedFooter: false)),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                         child: AppFooter(data: _data),
@@ -179,23 +197,19 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  Widget _bodyLandscape() {
-    if (_index == 0) {
-      return DashboardScreen(data: _data, embedFooter: false);
-    }
-    return _body();
-  }
-
-  Widget _body() {
-    switch (_index) {
-      case 0:
-        return DashboardScreen(data: _data);
-      case 1:
-        return LecteursScreen();
-      case 2:
-        return const TestsScreen();
-      default:
-        return const ConnectiviteScreen();
-    }
+  Widget _body({required bool embedFooter}) {
+    return IndexedStack(
+      index: _index,
+      children: [
+        DashboardScreen(
+          data: _data,
+          uptime: _uptime,
+          embedFooter: embedFooter,
+        ),
+        LecteursScreen(),
+        const TestsScreen(),
+        const ConnectiviteScreen(),
+      ],
+    );
   }
 }
