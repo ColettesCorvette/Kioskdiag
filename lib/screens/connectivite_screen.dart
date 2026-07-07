@@ -12,7 +12,12 @@ import '../widgets/status_banner.dart';
 /// adresse du serveur Fluxia, et actions de test / sauvegarde. La saisie se
 /// fait via le pavé numérique embarqué [OnScreenKeypad].
 class ConnectiviteScreen extends StatefulWidget {
-  const ConnectiviteScreen({super.key, this.ethernetStream});
+  const ConnectiviteScreen({super.key, this.serverIp, this.ethernetStream});
+
+  /// IP du serveur Fluxia, partagée avec l'onglet Tests (cf. F4). Par
+  /// défaut un contrôleur local (comportement inchangé) ; `HomeShell` lève
+  /// un contrôleur partagé entre les deux onglets en production.
+  final TextEditingController? serverIp;
 
   /// Stream de l'état du câble Ethernet. Par défaut `ethernetConnected()` ;
   /// les tests injectent un `Stream<bool>` canné (même pattern que
@@ -33,7 +38,8 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
   final _mask = TextEditingController(text: '255.255.255.0');
   final _gateway = TextEditingController(text: '192.168.10.1');
   final _dns = TextEditingController(text: '192.168.10.1');
-  final _serverIp = TextEditingController(text: '192.168.10.41');
+  late final TextEditingController _serverIp =
+      widget.serverIp ?? TextEditingController(text: '192.168.10.41');
 
   /// Message d'erreur par champ, vide tant qu'aucune sauvegarde invalide n'a
   /// eu lieu.
@@ -44,9 +50,12 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
 
   @override
   void dispose() {
-    for (final c in [_ip, _mask, _gateway, _dns, _serverIp]) {
+    for (final c in [_ip, _mask, _gateway, _dns]) {
       c.dispose();
     }
+    // Ne dispose _serverIp que si on l'a créé nous-mêmes : sinon il est
+    // partagé (levé dans HomeShell), sa durée de vie ne nous appartient pas.
+    if (widget.serverIp == null) _serverIp.dispose();
     super.dispose();
   }
 
@@ -372,6 +381,10 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
       }
     });
     if (_errors.isNotEmpty) return;
+    // TODO (hors périmètre spec F4) : cette sauvegarde reste factice — la
+    // config réseau (IP/masque/passerelle/DNS) n'est jamais réellement
+    // appliquée au système (netplan/nmcli). Seule l'IP serveur Fluxia est
+    // partagée en mémoire avec l'onglet Tests (cf. HomeShell._serverIp).
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Configuration réseau enregistrée.')),
     );

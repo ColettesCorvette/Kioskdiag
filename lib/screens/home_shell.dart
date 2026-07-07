@@ -61,6 +61,8 @@ class _HomeShellState extends State<HomeShell> {
       widget.initialQuarterTurns ?? (quarterTurnsFromEnv() ?? 0);
   late int _quarterTurns = _defaultQuarterTurns;
   late Duration _uptime = readUptime();
+  final TextEditingController _serverIp =
+      TextEditingController(text: '192.168.10.41');
   late final Timer _uptimeTimer;
   late final Timer _uptimeResyncTimer;
 
@@ -81,6 +83,7 @@ class _HomeShellState extends State<HomeShell> {
   void dispose() {
     _uptimeTimer.cancel();
     _uptimeResyncTimer.cancel();
+    _serverIp.dispose();
     super.dispose();
   }
 
@@ -236,7 +239,7 @@ class _HomeShellState extends State<HomeShell> {
         ),
         LecteursScreen(),
         const TestsScreen(),
-        const ConnectiviteScreen(),
+        ConnectiviteScreen(serverIp: _serverIp),
       ],
     );
   }

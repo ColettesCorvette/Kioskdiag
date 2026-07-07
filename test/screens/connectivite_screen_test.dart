@@ -347,4 +347,30 @@ void main() {
     await tester.pump();
     expect(find.text('Câble Ethernet non détecté'), findsOneWidget);
   });
+
+  testWidgets(
+      'F4: ConnectiviteScreen et un consommateur externe partagent le même contrôleur serverIp',
+      (tester) async {
+    final serverIp = TextEditingController(text: '192.168.10.41');
+    addTearDown(serverIp.dispose);
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: ConnectiviteScreen(serverIp: serverIp)),
+    ));
+
+    // Champ "Adresse IP" du serveur Fluxia : 5e TextField (IP, Masque,
+    // Passerelle, DNS, IP serveur).
+    await tester.tap(find.byType(TextField).at(4));
+    await tester.pump();
+    for (var i = 0; i < 14; i++) {
+      await tester.tap(find.byIcon(Icons.backspace_outlined));
+      await tester.pump();
+    }
+    for (final k in ['1', '0', '.', '0', '.', '0', '.', '1']) {
+      await tester.tap(find.text(k));
+      await tester.pump();
+    }
+
+    expect(serverIp.text, '10.30.0.1');
+  });
 }
