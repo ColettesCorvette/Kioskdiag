@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../models/diagnostic_data.dart';
+import '../services/system_metrics.dart';
 import '../theme.dart';
 import '../util/quit.dart';
 import '../widgets/app_footer.dart';
@@ -59,8 +60,9 @@ class _HomeShellState extends State<HomeShell> {
   late final int _defaultQuarterTurns =
       widget.initialQuarterTurns ?? (quarterTurnsFromEnv() ?? 0);
   late int _quarterTurns = _defaultQuarterTurns;
-  late Duration _uptime = _data.uptime;
+  late Duration _uptime = readUptime();
   late final Timer _uptimeTimer;
+  late final Timer _uptimeResyncTimer;
 
   @override
   void initState() {
@@ -68,11 +70,17 @@ class _HomeShellState extends State<HomeShell> {
     _uptimeTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _uptime += const Duration(seconds: 1));
     });
+    // Resynchronise sur la vraie valeur système toutes les 60 s : corrige
+    // toute dérive de l'incrémentation locale (throttling, setState différé).
+    _uptimeResyncTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      setState(() => _uptime = readUptime());
+    });
   }
 
   @override
   void dispose() {
     _uptimeTimer.cancel();
+    _uptimeResyncTimer.cancel();
     super.dispose();
   }
 
