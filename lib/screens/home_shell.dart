@@ -16,6 +16,21 @@ import 'dashboard_screen.dart';
 import 'lecteurs_screen.dart';
 import 'tests_screen.dart';
 
+const _panelEnvRaw =
+    String.fromEnvironment('KIOSKDIAG_PANEL', defaultValue: '600x1024');
+
+/// Parse "LARGEURxHAUTEUR" (ex. "1280x800"). Retombe sur 600×1024 si le
+/// format est invalide — jamais d'exception pour une valeur de dev mal
+/// formée.
+Size _parsePanelEnv(String raw) {
+  final parts = raw.split('x');
+  if (parts.length != 2) return const Size(600, 1024);
+  final w = double.tryParse(parts[0]);
+  final h = double.tryParse(parts[1]);
+  if (w == null || h == null || w <= 0 || h <= 0) return const Size(600, 1024);
+  return Size(w, h);
+}
+
 /// Écran principal en-tête, contenu de l'onglet courant, barre de navigation.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, this.onQuit = quitApp, this.initialQuarterTurns});
@@ -81,10 +96,15 @@ class _HomeShellState extends State<HomeShell> {
       return RotatedBox(quarterTurns: _quarterTurns, child: shell);
     }
 
-    // En preview web, on simule la dalle : portrait 600×1024 aux quarts pairs
-    // (défaut), paysage 1024×600 aux quarts impairs (bouton rotation).
+    // En preview web, on simule la dalle : portrait aux quarts pairs (défaut),
+    // paysage aux quarts impairs (bouton rotation). Taille de base
+    // configurable via KIOSKDIAG_PANEL (dart-define, dev uniquement) pour
+    // prévisualiser d'autres tailles de dalle sans recompiler le code —
+    // ex. `flutter run -d chrome --dart-define=KIOSKDIAG_PANEL=1280x800`.
+    // Défaut inchangé : 600×1024.
     final portrait = _quarterTurns.isEven;
-    final panel = portrait ? const Size(600, 1024) : const Size(1024, 600);
+    final basePanel = _parsePanelEnv(_panelEnvRaw);
+    final panel = portrait ? basePanel : Size(basePanel.height, basePanel.width);
     return ColoredBox(
       color: const Color(0xFFDADCE0),
       child: Center(
