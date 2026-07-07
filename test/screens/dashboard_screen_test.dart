@@ -36,4 +36,40 @@ void main() {
     expect(find.textContaining('9,5'), findsOneWidget);
     expect(tester.takeException(), isNull);
   }, skip: kIsWeb);
+
+  testWidgets(
+      'C3: carte mémoire affiche Disponible/Mise en cache, plus de champs Windows',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: DashboardScreen(
+          data: DiagnosticData.mock(),
+          uptime: DiagnosticData.mock().uptime,
+        ),
+      ),
+    ));
+
+    expect(find.text('Disponible'), findsOneWidget);
+    expect(find.text('Mise en cache'), findsOneWidget);
+    expect(find.textContaining('Réserve Paginée'), findsNothing);
+    expect(find.textContaining('Handles'), findsNothing);
+  });
+
+  testWidgets(
+      "C3: carte CPU affiche la même durée de fonctionnement que les pastilles d'uptime",
+      (tester) async {
+    const uptime = Duration(days: 2, hours: 3, minutes: 4, seconds: 5);
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: DashboardScreen(data: DiagnosticData.mock(), uptime: uptime),
+      ),
+    ));
+
+    await tester.tap(find.byIcon(Icons.developer_board));
+    await tester.pump();
+
+    expect(find.text('2:03:04:05'), findsOneWidget);
+    expect(find.textContaining('Sockets'), findsNothing);
+    expect(find.textContaining('Handles'), findsNothing);
+  });
 }

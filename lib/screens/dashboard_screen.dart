@@ -181,7 +181,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _cpuSelected ? _cpuContent(d.cpu) : _memoryContent(d.memory),
+            _cpuSelected
+                ? _cpuContent(d.cpu, widget.uptime)
+                : _memoryContent(d.memory),
             const SizedBox(height: 16),
             Center(
               child: PerfToggle(
@@ -207,29 +209,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _stat('Utilisable (compressée)', m.usable),
               _stat('Disponible', m.available),
-              _stat('Validée', m.committed),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
               _stat('Mise en cache', m.cached),
-              _stat('Réserve Paginée', m.pagedPool),
-              _stat('Pool non paginé', m.nonPagedPool),
             ],
           ),
-          const SizedBox(height: 20),
-          _kv('Vitesse', m.speed),
-          _kv('Emplacements utilisés', m.slots),
-          _kv('Facteur de forme', m.formFactor),
-          _kv('Matériel réservé', m.reserved),
         ],
       );
 
-  Widget _cpuContent(CpuInfo c) => Column(
+  Widget _cpuContent(CpuInfo c, Duration uptime) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -249,10 +236,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _stat('Utilisation', c.usage),
-              _stat('Vitesse', c.speed),
+              if (c.speed != null) _stat('Vitesse', c.speed!),
               _stat('Processus', c.processes),
-              _stat('Threads', c.threads),
-              _stat('Handles', c.handles),
+              _stat('Cœurs', c.cores),
             ],
           ),
           const SizedBox(height: 18),
@@ -262,44 +248,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 2),
           Text(
-            c.upTime,
+            _formatUptime(uptime),
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w600,
               color: Color(0xFF222428),
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _kvCompact('Vitesse de base', c.baseSpeed),
-                    _kvCompact('Sockets', c.sockets),
-                    _kvCompact('Coeurs', c.cores),
-                    _kvCompact('Processeurs logiques', c.logicalProcessors),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _kvCompact('Virtualisation', c.virtualization),
-                    _kvCompact('Cache de niveau 1', c.l1),
-                    _kvCompact('Cache de niveau 2', c.l2),
-                    _kvCompact('Cache de niveau 3', c.l3),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ],
       );
+
+  String _formatUptime(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${d.inDays}:${two(d.inHours % 24)}:${two(d.inMinutes % 60)}:'
+        '${two(d.inSeconds % 60)}';
+  }
 
   // Helpers d'affichage.
 
@@ -316,57 +279,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             value,
             style: const TextStyle(fontSize: 17, color: Color(0xFF222428)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _kv(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 170,
-            child: Text(
-              '$label :',
-              style: const TextStyle(fontSize: 15, color: Color(0xFF222428)),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 15, color: Color(0xFF222428)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _kvCompact(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Flexible(
-            child: Text(
-              '$label :',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF222428)),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF222428),
-            ),
           ),
         ],
       ),
