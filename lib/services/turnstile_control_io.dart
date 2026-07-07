@@ -43,8 +43,15 @@ Stream<EvenementTourniquet> evenements(String serverIp) {
   Timer? timer;
   var cancelled = false;
   var depuis = 0;
+  // Un seul tick en vol à la fois : gatectl injoignable = chaque requête
+  // attend jusqu'au timeout (10 s), et sans cette garde le Timer 500 ms
+  // empilerait ~20 requêtes concurrentes en permanence (et deux ticks
+  // simultanés pourraient faire régresser `depuis` → événements dupliqués).
+  var busy = false;
 
   Future<void> tick() async {
+    if (busy) return;
+    busy = true;
     final client = HttpClient()..connectionTimeout = _timeout;
     try {
       final request = await client
@@ -74,6 +81,7 @@ Stream<EvenementTourniquet> evenements(String serverIp) {
       // Gatectl injoignable pour ce cycle : on retente au prochain tick.
     } finally {
       client.close(force: true);
+      busy = false;
     }
   }
 
