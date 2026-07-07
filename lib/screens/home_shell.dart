@@ -238,7 +238,7 @@ class _HomeShellState extends State<HomeShell> {
           embedFooter: embedFooter,
         ),
         LecteursScreen(),
-        const TestsScreen(),
+        TestsScreen(serverIp: _serverIp),
         ConnectiviteScreen(serverIp: _serverIp),
       ],
     );

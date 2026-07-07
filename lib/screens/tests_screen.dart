@@ -3,53 +3,122 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../models/turnstile_event.dart';
+import '../services/turnstile_control.dart' as control;
 import '../theme.dart';
 import '../widgets/section_card.dart';
 import '../widgets/status_banner.dart';
 
-enum _RotationDir { horaire, antiHoraire }
+enum _RotationState { enAttente, commandeEnvoyee, validee, echec }
 
-/// Onglet Tests : commande la rotation du tourniquet dans les deux sens et
-/// déroule le test du bouton poussoir de sortie.
+/// Onglet Tests : commande la rotation du tourniquet dans les deux sens via
+/// la gatectl et déroule le test du bouton poussoir de sortie à partir des
+/// vrais événements remontés (cf. spec F4).
 class TestsScreen extends StatefulWidget {
-  const TestsScreen({super.key});
+  const TestsScreen({
+    super.key,
+    this.serverIp,
+    this.commanderRotation,
+    this.evenements,
+  });
+
+  /// IP du serveur Fluxia, partagée avec l'onglet Connectivité. Par
+  /// défaut un contrôleur local (même pattern que `ConnectiviteScreen`).
+  final TextEditingController? serverIp;
+
+  /// Par défaut `control.commanderRotation`/`control.evenements` (io réel ou
+  /// stub web selon la plateforme) ; les tests injectent un flux canné.
+  final Future<bool> Function(String serverIp, SensRotation sens)?
+      commanderRotation;
+  final Stream<EvenementTourniquet> Function(String serverIp)? evenements;
 
   @override
   State<TestsScreen> createState() => _TestsScreenState();
 }
 
 class _TestsScreenState extends State<TestsScreen> {
-  _RotationDir? _validatedDir;
-  // État simulé en attendant le vrai matériel (F4) : sens détecté par le
-  // test du bouton poussoir, calé sur la dernière rotation commandée.
-  _RotationDir _detectedSens = _RotationDir.horaire;
+  late final TextEditingController _serverIp =
+      widget.serverIp ?? TextEditingController(text: '192.168.10.41');
+  late final Future<bool> Function(String, SensRotation) _commanderRotation =
+      widget.commanderRotation ?? control.commanderRotation;
+  late final Stream<EvenementTourniquet> Function(String) _evenementsSource =
+      widget.evenements ?? control.evenements;
+  StreamSubscription<EvenementTourniquet>? _sub;
 
-  // Test du bouton poussoir de sortie.
+  _RotationState _rotationState = _RotationState.enAttente;
+  SensRotation? _rotationSens;
+  String? _echecRaison;
+  Timer? _rotationTimeoutTimer;
+
   bool _buttonPressed = false;
   bool _rotationDetected = false;
-  Timer? _rotationTimer;
+  SensRotation _detectedSens = SensRotation.horaire;
+
+  @override
+  void initState() {
+    super.initState();
+    _sub = _evenementsSource(_serverIp.text).listen(_onEvenement);
+  }
 
   @override
   void dispose() {
-    _rotationTimer?.cancel();
+    _sub?.cancel();
+    _rotationTimeoutTimer?.cancel();
+    if (widget.serverIp == null) _serverIp.dispose();
     super.dispose();
   }
 
-  void _rotate(_RotationDir dir) {
-    setState(() => _validatedDir = dir);
+  void _onEvenement(EvenementTourniquet evt) {
+    if (evt is RotationDetectee) {
+      if (_rotationState == _RotationState.commandeEnvoyee &&
+          evt.sens == _rotationSens) {
+        _rotationTimeoutTimer?.cancel();
+        setState(() => _rotationState = _RotationState.validee);
+      }
+      if (_buttonPressed && !_rotationDetected) {
+        setState(() {
+          _rotationDetected = true;
+          _detectedSens = evt.sens;
+        });
+      }
+    } else if (evt is BoutonSortiePresse) {
+      setState(() => _buttonPressed = true);
+    }
   }
 
-  /// Simule l'appui sur le bouton poussoir physique : la pression est détectée
-  /// immédiatement, la rotation des bras est confirmée peu après.
-  void _pressExitButton() {
-    _rotationTimer?.cancel();
+  Future<void> _rotate(SensRotation sens) async {
+    _rotationTimeoutTimer?.cancel();
     setState(() {
-      _buttonPressed = true;
-      _rotationDetected = false;
-      if (_validatedDir != null) _detectedSens = _validatedDir!;
+      _rotationState = _RotationState.commandeEnvoyee;
+      _rotationSens = sens;
+      _echecRaison = null;
     });
-    _rotationTimer = Timer(const Duration(milliseconds: 1200), () {
-      if (mounted) setState(() => _rotationDetected = true);
+    final accepted = await _commanderRotation(_serverIp.text, sens);
+    if (!mounted) return;
+    if (!accepted) {
+      setState(() {
+        _rotationState = _RotationState.echec;
+        _echecRaison = 'gatectl injoignable';
+      });
+      return;
+    }
+    _rotationTimeoutTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted && _rotationState == _RotationState.commandeEnvoyee) {
+        setState(() {
+          _rotationState = _RotationState.echec;
+          _echecRaison = 'délai dépassé';
+        });
+      }
+    });
+  }
+
+  /// Réinitialise l'affichage du test du bouton poussoir : n'avance plus que
+  /// sur les vrais événements du flux partagé (cf. décision F4 — le tap ne
+  /// simule plus rien, il n'y a plus de matériel factice à déclencher).
+  void _pressExitButton() {
+    setState(() {
+      _buttonPressed = false;
+      _rotationDetected = false;
     });
   }
 
@@ -64,7 +133,7 @@ class _TestsScreenState extends State<TestsScreen> {
             children: [
               Expanded(
                 child: _rotationButton(
-                  dir: _RotationDir.horaire,
+                  sens: SensRotation.horaire,
                   color: DiagColors.title,
                   icon: Icons.rotate_right,
                   label: 'Tourner le tourniquet\nSens Horaire',
@@ -73,7 +142,7 @@ class _TestsScreenState extends State<TestsScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: _rotationButton(
-                  dir: _RotationDir.antiHoraire,
+                  sens: SensRotation.antiHoraire,
                   color: DiagColors.accentUptime,
                   icon: Icons.rotate_left,
                   label: 'Tourner le tourniquet\nSens Anti-Horaire',
@@ -92,7 +161,7 @@ class _TestsScreenState extends State<TestsScreen> {
   }
 
   Widget _rotationButton({
-    required _RotationDir dir,
+    required SensRotation sens,
     required Color color,
     required IconData icon,
     required String label,
@@ -102,7 +171,7 @@ class _TestsScreenState extends State<TestsScreen> {
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () => _rotate(dir),
+        onTap: () => _rotate(sens),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           child: Row(
@@ -128,21 +197,34 @@ class _TestsScreenState extends State<TestsScreen> {
   }
 
   Widget _rotationBanner() {
-    if (_validatedDir == null) {
-      return const StatusBanner(
-        color: DiagColors.textMuted,
-        icon: Icons.info_outline,
-        text: 'En attente d\'une commande de rotation.',
-      );
+    switch (_rotationState) {
+      case _RotationState.enAttente:
+        return const StatusBanner(
+          color: DiagColors.textMuted,
+          icon: Icons.info_outline,
+          text: "En attente d'une commande de rotation.",
+        );
+      case _RotationState.commandeEnvoyee:
+        return const StatusBanner(
+          color: DiagColors.accentUptime,
+          icon: Icons.sync,
+          text: 'Commande envoyée...',
+        );
+      case _RotationState.validee:
+        final sens =
+            _rotationSens == SensRotation.horaire ? 'horaire' : 'anti-horaire';
+        return StatusBanner(
+          color: DiagColors.accentDisk,
+          icon: Icons.check,
+          text: 'Rotation du bras dans le sens $sens validée.',
+        );
+      case _RotationState.echec:
+        return StatusBanner(
+          color: DiagColors.red,
+          icon: Icons.error_outline,
+          text: 'Échec : $_echecRaison.',
+        );
     }
-    final sens = _validatedDir == _RotationDir.horaire
-        ? 'horaire'
-        : 'anti-horaire';
-    return StatusBanner(
-      color: DiagColors.accentDisk,
-      icon: Icons.check,
-      text: 'Rotation du bras dans le sens $sens validée.',
-    );
   }
 
   Widget _exitButtonCard() {
@@ -294,7 +376,7 @@ class _TestsScreenState extends State<TestsScreen> {
 
   Widget _detectedPill() {
     final label =
-        _detectedSens == _RotationDir.horaire ? 'Horaire' : 'Anti-Horaire';
+        _detectedSens == SensRotation.horaire ? 'Horaire' : 'Anti-Horaire';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
