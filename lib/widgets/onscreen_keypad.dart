@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// Pavé numérique affiché à l'écran. Sur la dalle embarquée (flutter-pi en DRM)
-/// il n'y a pas de clavier système : c'est ce widget qui saisit dans le champ
-/// actif. Les touches couvrent les besoins d'une saisie d'adresse IP : chiffres
-/// et point.
+/// Pavé numérique affiché à l'écran. Sur la dalle embarquée (flutter-elinux,
+/// client Wayland de weston — pas flutter-pi/DRM) il n'y a pas de clavier
+/// système : c'est ce widget qui saisit dans le champ actif. Les touches
+/// couvrent les besoins d'une saisie d'adresse IP : chiffres et point.
 ///
 /// La hauteur des touches est proportionnelle à la dalle pour que le pavé ne
 /// masque jamais plus d'environ 40 % de l'écran.
