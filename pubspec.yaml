@@ -19,4 +19,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/
+    - assets/logo.png
+    - assets/fluxia_wordmark.png
+    - assets/bg_vagues.svg
+    - assets/illus_test_poussoir.svg

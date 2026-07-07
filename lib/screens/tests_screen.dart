@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme.dart';
 import '../widgets/section_card.dart';
@@ -212,8 +213,8 @@ class _TestsScreenState extends State<TestsScreen> {
   }
 
   Widget _turnstileIllustration() {
-    // Illustration provisoire à remplacer par le vrai asset du tourniquet.
     return GestureDetector(
+      key: const Key('turnstile_illustration'),
       onTap: _pressExitButton,
       child: Container(
         width: 84,
@@ -222,8 +223,12 @@ class _TestsScreenState extends State<TestsScreen> {
           color: const Color(0xFFF0F1F3),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Center(
-          child: Icon(Icons.account_balance, size: 44, color: Color(0xFFBFC4CC)),
+        child: Center(
+          child: SvgPicture.asset(
+            'assets/illus_test_poussoir.svg',
+            width: 60,
+            height: 60,
+          ),
         ),
       ),
     );

@@ -9,7 +9,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.rotate_right));
     await tester.pump();
-    await tester.tap(find.byIcon(Icons.account_balance));
+    await tester.tap(find.byKey(const Key('turnstile_illustration')));
     await tester.pump(const Duration(milliseconds: 1200));
 
     expect(find.text('Sortie sens Horaire détectée'), findsOneWidget);
@@ -22,7 +22,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.rotate_left));
     await tester.pump();
-    await tester.tap(find.byIcon(Icons.account_balance));
+    await tester.tap(find.byKey(const Key('turnstile_illustration')));
     await tester.pump(const Duration(milliseconds: 1200));
 
     expect(find.text('Sortie sens Anti-Horaire détectée'), findsOneWidget);
@@ -63,7 +63,7 @@ void main() {
     // Avant tout appui : les deux lignes de statut affichent "En attente...".
     expect(find.text('En attente...'), findsNWidgets(2));
 
-    await tester.tap(find.byIcon(Icons.account_balance));
+    await tester.tap(find.byKey(const Key('turnstile_illustration')));
     await tester.pump();
 
     // Juste après l'appui : pression détectée, rotation pas encore.
