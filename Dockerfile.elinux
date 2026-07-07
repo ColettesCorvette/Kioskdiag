@@ -29,9 +29,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfontconfig1-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# flutter-elinux embarque son propre SDK Flutter (fork). Branche par défaut =
-# Flutter récent (Dart >= 3.5, requis par Color.withValues de l'app).
-RUN git clone --depth 1 https://github.com/sony/flutter-elinux.git /opt/flutter-elinux
+# flutter-elinux embarque son propre SDK Flutter (fork). Épinglé sur un SHA
+# précis pour un build reproductible (avant : --depth 1 sur la branche par
+# défaut, donc un commit différent à chaque reclone possible, silencieusement).
+# SHA = HEAD réel de sony/flutter-elinux relevé le 2026-07-07 via
+# `git ls-remote https://github.com/sony/flutter-elinux.git HEAD` — build
+# Docker complet non ré-exécuté pour confirmer qu'il compile avec ce SHA
+# précis (voir limite assumée du Lot D). Pour bumper : choisir un nouveau
+# SHA, relancer le build complet (`docker build -f Dockerfile.elinux
+# --target export --output type=local,dest=dist-elinux .`) et confirmer
+# qu'il passe avant de remplacer la valeur ci-dessous.
+ARG FLUTTER_ELINUX_SHA=cdc9622651ee7b217697258cd5ca0b8963f1d6a4
+RUN git clone https://github.com/sony/flutter-elinux.git /opt/flutter-elinux \
+    && git -C /opt/flutter-elinux checkout "$FLUTTER_ELINUX_SHA"
 ENV PATH="/opt/flutter-elinux/bin:${PATH}"
 RUN git config --global --add safe.directory /opt/flutter-elinux \
     && flutter-elinux --version
@@ -46,7 +56,7 @@ RUN flutter-elinux pub get
 COPY . .
 
 # Scaffold du runner eLinux (génère elinux/ si absent) puis build Wayland arm64.
-RUN flutter-elinux create --platforms=elinux . || true
+RUN [ -d elinux ] || flutter-elinux create --platforms=elinux .
 # KIOSKDIAG_VERSION : source unique = `version:` de pubspec.yaml, injectée au
 # build pour un futur diagnostic (traçabilité du binaire déployé). Non lue
 # par l'UI aujourd'hui (le footer affiche la date Puppet depuis le Lot F1) —
