@@ -68,7 +68,6 @@ class DiagnosticData {
     required this.disk,
     required this.memory,
     required this.cpu,
-    required this.appVersion,
     required this.osVersion,
     required this.copyright,
   });
@@ -79,7 +78,6 @@ class DiagnosticData {
   final DiskInfo disk;
   final MemoryInfo memory;
   final CpuInfo cpu;
-  final String appVersion;
   final String osVersion;
   final String copyright;
 
@@ -103,7 +101,6 @@ class DiagnosticData {
         processes: '190',
         cores: '4',
       ),
-      appVersion: '2025.52.4',
       osVersion: '2026.01.1',
       copyright: 'COPYRIGHT © 2018-2026',
     );

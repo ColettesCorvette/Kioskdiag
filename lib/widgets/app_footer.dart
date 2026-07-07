@@ -4,9 +4,9 @@ import '../models/diagnostic_data.dart';
 import '../theme.dart';
 import '../util/puppet_mtime.dart';
 
-/// Pied de page partagé : logo texte FLUXIA, copyright/version appli à
-/// gauche, version OS à droite. Utilisé dans le corps du Dashboard (portrait)
-/// et comme barre commune du shell (paysage).
+/// Pied de page partagé : logo texte FLUXIA, copyright/date du dernier
+/// passage Puppet à gauche (cf. Lot F1), version OS à droite. Utilisé dans
+/// le corps du Dashboard (portrait) et comme barre commune du shell (paysage).
 class AppFooter extends StatelessWidget {
   const AppFooter({super.key, required this.data});
 

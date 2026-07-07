@@ -47,7 +47,12 @@ COPY . .
 
 # Scaffold du runner eLinux (génère elinux/ si absent) puis build Wayland arm64.
 RUN flutter-elinux create --platforms=elinux . || true
-RUN flutter-elinux build elinux --target-arch=arm64 --target-backend-type=wayland --release
+# KIOSKDIAG_VERSION : source unique = `version:` de pubspec.yaml, injectée au
+# build pour un futur diagnostic (traçabilité du binaire déployé). Non lue
+# par l'UI aujourd'hui (le footer affiche la date Puppet depuis le Lot F1) —
+# c'est une infrastructure prête pour un usage diagnostic futur.
+RUN flutter-elinux build elinux --target-arch=arm64 --target-backend-type=wayland --release \
+    --dart-define=KIOSKDIAG_VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2)
 
 # Bundle dans build/elinux/<arch>/release/bundle/
 RUN mkdir -p /out && cp -a build/elinux/*/release/bundle/. /out/
