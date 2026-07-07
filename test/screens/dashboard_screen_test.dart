@@ -72,4 +72,23 @@ void main() {
     expect(find.textContaining('Sockets'), findsNothing);
     expect(find.textContaining('Handles'), findsNothing);
   });
+
+  testWidgets(
+      'C3: échantillonnage mémoire/CPU tourne 65s sans exception (repli /proc absent)',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: DashboardScreen(
+          data: DiagnosticData.mock(),
+          uptime: DiagnosticData.mock().uptime,
+        ),
+      ),
+    ));
+
+    await tester.pump(const Duration(seconds: 65));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Disponible'), findsOneWidget);
+    expect(find.text('Mise en cache'), findsOneWidget);
+  });
 }

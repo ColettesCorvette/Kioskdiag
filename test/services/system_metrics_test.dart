@@ -77,4 +77,96 @@ void main() {
       );
     });
   });
+
+  group('parseMemInfo', () {
+    test('extrait MemTotal/MemAvailable/Cached en Ko', () {
+      const content = 'MemTotal:        7900000 kB\n'
+          'MemFree:          200000 kB\n'
+          'MemAvailable:    1600000 kB\n'
+          'Cached:          2600000 kB\n';
+      final m = io.parseMemInfo(content);
+      expect(m.totalKb, 7900000);
+      expect(m.availableKb, 1600000);
+      expect(m.cachedKb, 2600000);
+    });
+
+    test('champ manquant → lève une exception (capturée par readMemInfo)', () {
+      expect(() => io.parseMemInfo('MemTotal: 100 kB\n'), throwsFormatException);
+    });
+  });
+
+  group('computeCpuUsage', () {
+    test('calcule le % entre deux lectures de /proc/stat', () {
+      // idle+iowait passe de 400 à 450 (delta 50) pendant que le total
+      // passe de 1000 à 1200 (delta 200) → 75% de temps non-idle.
+      const prev = 'cpu  600 0 0 400 0 0 0 0 0 0';
+      const curr = 'cpu  750 0 0 450 0 0 0 0 0 0';
+      expect(io.computeCpuUsage(prev, curr), closeTo(75.0, 0.01));
+    });
+
+    test('aucun delta (deux lectures identiques) → 0%', () {
+      const line = 'cpu  100 0 100 400 0 0 0 0 0 0';
+      expect(io.computeCpuUsage(line, line), 0);
+    });
+  });
+
+  group('parseCpuName', () {
+    test('utilise "model name" si présent', () {
+      const content = 'processor\t: 0\nmodel name\t: Cortex-A55\n';
+      expect(io.parseCpuName(content), 'Cortex-A55');
+    });
+
+    test('repli sur "Hardware" si "model name" absent', () {
+      const content = 'processor\t: 0\nHardware\t: Rockchip RK3568\n';
+      expect(io.parseCpuName(content), 'Rockchip RK3568');
+    });
+
+    test('repli générique si aucun des deux champs présent', () {
+      expect(io.parseCpuName('processor\t: 0\n'), 'Processeur ARM');
+    });
+  });
+
+  group('parseCpuCores', () {
+    test('compte les lignes "processor"', () {
+      const content = 'processor\t: 0\nprocessor\t: 1\n'
+          'processor\t: 2\nprocessor\t: 3\n';
+      expect(io.parseCpuCores(content), 4);
+    });
+  });
+
+  group('parseCpuSpeedGHz', () {
+    test('convertit "cpu MHz" en GHz formaté', () {
+      expect(io.parseCpuSpeedGHz('cpu MHz\t\t: 1800.000\n'), '1,80 GHz');
+    });
+
+    test('absent → null', () {
+      expect(io.parseCpuSpeedGHz('processor\t: 0\n'), isNull);
+    });
+  });
+
+  group('readMemInfo/readCpuStatLine/readCpuName/readCpuCores/readCpuSpeedMHz/readProcessCount (io)', () {
+    test('/proc absent sur cette machine → replis cohérents avec le mock', () {
+      final mem = io.readMemInfo();
+      expect(mem.totalKb, 7900000);
+      expect(mem.availableKb, 1600000);
+      expect(mem.cachedKb, 2600000);
+
+      expect(io.readCpuName(), 'Rockchip RK3568, 4 cœurs Cortex-A55');
+      expect(io.readCpuCores(), 4);
+      expect(io.readCpuSpeedMHz(), isNull);
+      expect(io.readProcessCount(), 190);
+    });
+  });
+
+  group('(stub web)', () {
+    test('replis fixes', () {
+      final mem = stub.readMemInfo();
+      expect(mem.totalKb, 7900000);
+      expect(stub.readCpuName(), 'Rockchip RK3568, 4 cœurs Cortex-A55');
+      expect(stub.readCpuCores(), 4);
+      expect(stub.readCpuSpeedMHz(), isNull);
+      expect(stub.readProcessCount(), 190);
+      expect(stub.computeCpuUsage('', ''), 0);
+    });
+  });
 }

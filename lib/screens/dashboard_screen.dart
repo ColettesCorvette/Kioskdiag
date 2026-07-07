@@ -50,6 +50,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late DiskInfo _disk = widget.data.disk;
   Timer? _diskTimer;
 
+  late MemoryInfo _memory = widget.data.memory;
+  late CpuInfo _cpu = widget.data.cpu;
+  final List<double> _memorySeries = [];
+  final List<double> _cpuSeries = [];
+  String _previousCpuStat = '';
+  Timer? _sampleTimer;
+
   @override
   void initState() {
     super.initState();
@@ -59,12 +66,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const Duration(seconds: 30),
         (_) => setState(() => _disk = _diskReader()),
       );
+
+      _memorySeries.addAll(widget.data.memory.series);
+      _cpuSeries.addAll(widget.data.cpu.series);
+      _previousCpuStat = readCpuStatLine();
+      _cpu = CpuInfo(
+        name: readCpuName(),
+        series: _cpuSeries,
+        usage: _cpu.usage,
+        speed: readCpuSpeedMHz(),
+        processes: _cpu.processes,
+        cores: '${readCpuCores()}',
+      );
+      _sampleTimer = Timer.periodic(const Duration(seconds: 1), (_) => _sample());
     }
+  }
+
+  void _sample() {
+    final mem = readMemInfo();
+    final totalGo = mem.totalKb / 1000000;
+    final availableGo = mem.availableKb / 1000000;
+    _memorySeries.add(totalGo - availableGo);
+    if (_memorySeries.length > 60) _memorySeries.removeAt(0);
+
+    final currentStat = readCpuStatLine();
+    final usagePercent = computeCpuUsage(_previousCpuStat, currentStat);
+    _previousCpuStat = currentStat;
+    _cpuSeries.add(usagePercent);
+    if (_cpuSeries.length > 60) _cpuSeries.removeAt(0);
+
+    final processes = readProcessCount();
+    setState(() {
+      _memory = MemoryInfo(
+        maxGo: totalGo,
+        series: List.of(_memorySeries),
+        available: '${_fr(availableGo)} Go',
+        cached: '${_fr(mem.cachedKb / 1000000)} Go',
+      );
+      _cpu = CpuInfo(
+        name: _cpu.name,
+        series: List.of(_cpuSeries),
+        usage: '${usagePercent.round()}%',
+        speed: _cpu.speed,
+        processes: '$processes',
+        cores: _cpu.cores,
+      );
+    });
   }
 
   @override
   void dispose() {
     _diskTimer?.cancel();
+    _sampleTimer?.cancel();
     super.dispose();
   }
 
@@ -182,8 +235,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _cpuSelected
-                ? _cpuContent(d.cpu, widget.uptime)
-                : _memoryContent(d.memory),
+                ? _cpuContent(_cpu, widget.uptime)
+                : _memoryContent(_memory),
             const SizedBox(height: 16),
             Center(
               child: PerfToggle(
