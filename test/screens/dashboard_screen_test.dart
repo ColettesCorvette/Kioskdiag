@@ -91,4 +91,29 @@ void main() {
     expect(find.text('Disponible'), findsOneWidget);
     expect(find.text('Mise en cache'), findsOneWidget);
   });
+
+  testWidgets(
+      'C2: les Go réels (jamais ronds) sont affichés avec 1 décimale max',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: DashboardScreen(
+          data: DiagnosticData.mock(),
+          uptime: DiagnosticData.mock().uptime,
+          // Valeurs typiques de df -B1 : aucune ne tombe rond.
+          diskReader: () => const DiskInfo(
+            freeGb: 10.823456789,
+            usedGb: 21.176543211,
+            totalGb: 31.998,
+          ),
+        ),
+      ),
+    ));
+
+    expect(find.textContaining('10,8 GB'), findsOneWidget);
+    // "x GB sur / y GB utilisés" est un RichText → findRichText nécessaire.
+    expect(find.textContaining('21,2 GB', findRichText: true), findsOneWidget);
+    expect(find.textContaining('32,0 GB', findRichText: true), findsOneWidget);
+    expect(find.textContaining('10,823', findRichText: true), findsNothing);
+  });
 }

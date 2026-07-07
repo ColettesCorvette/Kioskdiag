@@ -353,8 +353,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // 1 décimale max : les valeurs réelles de df/meminfo ne tombent jamais
+  // rond (10.823456789 Go), contrairement aux mocks qui masquaient le cas.
   String _fr(double v) {
-    final s = v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+    final s = v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
     return s.replaceAll('.', ',');
   }
 }
