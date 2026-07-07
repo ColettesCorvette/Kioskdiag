@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../models/diagnostic_data.dart';
+import '../services/system_metrics.dart';
 import '../theme.dart';
 import '../widgets/app_footer.dart';
 import '../widgets/disk_ring.dart';
@@ -17,6 +21,7 @@ class DashboardScreen extends StatefulWidget {
     required this.data,
     required this.uptime,
     this.embedFooter = true,
+    this.diskReader,
   });
 
   final DiagnosticData data;
@@ -30,12 +35,38 @@ class DashboardScreen extends StatefulWidget {
   /// en barre commune et passe `false` pour éviter le doublon.
   final bool embedFooter;
 
+  /// Lecture de l'espace disque. Par défaut `readDisk` (service système) ;
+  /// les tests injectent un faux lecteur pour vérifier le rafraîchissement
+  /// périodique sans dépendre de `df`/`/data` réels.
+  final DiskInfo Function()? diskReader;
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _cpuSelected = false;
+  late final DiskInfo Function() _diskReader = widget.diskReader ?? readDisk;
+  late DiskInfo _disk = widget.data.disk;
+  Timer? _diskTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb) {
+      _disk = _diskReader();
+      _diskTimer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) => setState(() => _disk = _diskReader()),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _diskTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,8 +154,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Row(
           children: [
             DiskRing(
-              usedFraction: d.disk.usedFraction,
-              freeLabel: '${_fr(d.disk.freeGb)} GB',
+              usedFraction: _disk.usedFraction,
+              freeLabel: '${_fr(_disk.freeGb)} GB',
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -132,9 +163,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _emphasis('${_fr(d.disk.usedGb)} GB', ' sur'),
+                  _emphasis('${_fr(_disk.usedGb)} GB', ' sur'),
                   const SizedBox(height: 4),
-                  _emphasis('${_fr(d.disk.totalGb)} GB', ' utilisés'),
+                  _emphasis('${_fr(_disk.totalGb)} GB', ' utilisés'),
                 ],
               ),
             ),

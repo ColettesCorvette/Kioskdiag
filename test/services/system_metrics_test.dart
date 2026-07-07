@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kioskdiag/models/diagnostic_data.dart';
 import 'package:kioskdiag/services/system_metrics_io.dart' as io;
 import 'package:kioskdiag/services/system_metrics_stub.dart' as stub;
 
@@ -39,6 +40,40 @@ void main() {
       expect(
         stub.readUptime(),
         const Duration(days: 5, hours: 10, minutes: 36, seconds: 22),
+      );
+    });
+  });
+
+  group('parseDfOutput', () {
+    test('parse une sortie df -B1 typique', () {
+      const output =
+          'Filesystem      1B-blocks       Used  Available Use% Mounted on\n'
+          '/dev/mmcblk0p5 32000000000 21200000000 10800000000  67% /data\n';
+      final disk = io.parseDfOutput(output);
+      expect(disk.totalGb, closeTo(32.0, 0.01));
+      expect(disk.usedGb, closeTo(21.2, 0.01));
+      expect(disk.freeGb, closeTo(10.8, 0.01));
+    });
+  });
+
+  group('readDisk (io)', () {
+    test('repli sur la valeur mock (df BSD sans -B1 sur cette machine)', () {
+      // Ce Mac a un `df` BSD, pas GNU coreutils : `-B1` n'est pas un flag
+      // valide, `df` sort en erreur → readDisk() retombe sur le repli,
+      // exactement comme sur la borne si /data était absent. Ce test
+      // documente ce comportement réel, ce n'est pas un mock déguisé.
+      expect(
+        io.readDisk(),
+        const DiskInfo(freeGb: 10.8, usedGb: 21.2, totalGb: 32),
+      );
+    });
+  });
+
+  group('readDisk (stub web)', () {
+    test('retourne la valeur mock fixe', () {
+      expect(
+        stub.readDisk(),
+        const DiskInfo(freeGb: 10.8, usedGb: 21.2, totalGb: 32),
       );
     });
   });
