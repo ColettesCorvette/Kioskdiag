@@ -44,6 +44,7 @@ class _TestsScreenState extends State<TestsScreen> {
   late final Stream<EvenementTourniquet> Function(String) _evenementsSource =
       widget.evenements ?? control.evenements;
   StreamSubscription<EvenementTourniquet>? _sub;
+  String _subscribedIp = '';
 
   _RotationState _rotationState = _RotationState.enAttente;
   SensRotation? _rotationSens;
@@ -57,11 +58,24 @@ class _TestsScreenState extends State<TestsScreen> {
   @override
   void initState() {
     super.initState();
-    _sub = _evenementsSource(_serverIp.text).listen(_onEvenement);
+    _subscribedIp = _serverIp.text;
+    _sub = _evenementsSource(_subscribedIp).listen(_onEvenement);
+    // L'IP serveur est éditable dans l'onglet Connectivité (contrôleur
+    // partagé) : sans réabonnement, le flux d'événements continuerait de
+    // poller l'ancienne IP alors que les commandes partent vers la nouvelle.
+    _serverIp.addListener(_resubscribeIfIpChanged);
+  }
+
+  void _resubscribeIfIpChanged() {
+    if (_serverIp.text == _subscribedIp) return;
+    _subscribedIp = _serverIp.text;
+    _sub?.cancel();
+    _sub = _evenementsSource(_subscribedIp).listen(_onEvenement);
   }
 
   @override
   void dispose() {
+    _serverIp.removeListener(_resubscribeIfIpChanged);
     _sub?.cancel();
     _rotationTimeoutTimer?.cancel();
     if (widget.serverIp == null) _serverIp.dispose();

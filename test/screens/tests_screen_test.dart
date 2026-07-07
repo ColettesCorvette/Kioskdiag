@@ -204,4 +204,30 @@ void main() {
     expect(find.text('En attente...'), findsNWidgets(2));
     expect(find.text('Sortie sens Horaire détectée'), findsNothing);
   });
+
+  testWidgets(
+      "F4: changer l'IP serveur (contrôleur partagé) réabonne le flux d'événements",
+      (tester) async {
+    final controller = TextEditingController(text: '192.168.10.41');
+    addTearDown(controller.dispose);
+    final subscribedIps = <String>[];
+    await tester.pumpWidget(MaterialApp(
+      home: TestsScreen(
+        serverIp: controller,
+        commanderRotation: (ip, sens) async => true,
+        evenements: (ip) {
+          subscribedIps.add(ip);
+          return const Stream.empty();
+        },
+      ),
+    ));
+    expect(subscribedIps, ['192.168.10.41']);
+
+    // L'onglet Connectivité modifie le contrôleur partagé : le polling doit
+    // repartir sur la nouvelle IP, pas rester figé sur celle de l'initState.
+    controller.text = '10.30.0.7';
+    await tester.pump();
+
+    expect(subscribedIps, ['192.168.10.41', '10.30.0.7']);
+  });
 }
