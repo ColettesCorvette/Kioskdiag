@@ -99,8 +99,10 @@ Deux noms sont partagés avec kioskdiag : le socket `wayland-tc` et le dossier
 
 ### 4. Le blob Mali
 
-- Posé en `/data/kioskdiag-pi/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so`
-  (le dossier s'appelle encore kioskdiag-pi, vestige de l'époque flutter-pi).
+- Posé en `/data/mali/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so` — dossier
+  à lui parce qu'il est partagé par les deux applis (weston kioskview ET
+  client kioskdiag). Historique : il vivait dans `/data/kioskdiag-pi/` (le
+  vieux bundle flutter-pi), nettoyé lors du ménage de juillet 2026.
 - Provenance : `~/tripod-debs` sur le Mac. Une copie compressée est versionnée
   dans `deploy/blobs/` avec son sha256 — voir `deploy/blobs/README.md` pour la
   restaurer.
@@ -114,17 +116,17 @@ Construit sur le Mac en Docker arm64 :
     docker build -f Dockerfile.elinux --target export \
       --output type=local,dest=dist-elinux .
 
-Déployé **à la racine** de `/data/kioskdiag-gtk/` — le lanceur attend
+Déployé **à la racine** de `/data/kioskdiag/` — le lanceur attend
 `kioskdiag`, `lib/` et `data/` directement là, pas dans un sous-dossier :
 
-    rsync -a --delete dist-elinux/ orbinea@fluxia:/data/kioskdiag-gtk/
+    rsync -a --delete dist-elinux/ orbinea@fluxia:/data/kioskdiag/
 
 À côté du bundle : `eglshim.so`, compilé sur la carte depuis
 `deploy/eglshim.c`. C'est un LD_PRELOAD qui force
 `eglGetPlatformDisplayEXT` en Wayland (sinon le blob part en X11 et crashe) :
 
-    gcc -shared -fPIC -O2 -o /data/kioskdiag-gtk/eglshim.so \
-        /data/kioskdiag-gtk/eglshim.c -ldl
+    gcc -shared -fPIC -O2 -o /data/kioskdiag/eglshim.so \
+        /data/kioskdiag/eglshim.c -ldl
 
 ### 6. Le démon de geste et le lanceur
 
@@ -173,6 +175,21 @@ Un seul : `libinput-tools` (pour `libinput list-devices`). Ça tire
 dépendance runtime. Tout le reste (weston, docker, gcc, les libs Wayland) était
 déjà sur l'image d'origine.
 
+### 8. Ménage /data (juillet 2026)
+
+L'historique des pistes avait laissé deux dossiers mal nommés. Renommage :
+
+    sudo mkdir -p /data/mali
+    sudo cp /data/kioskdiag-pi/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so /data/mali/
+    sudo mv /data/kioskdiag-gtk /data/kioskdiag
+    # + mise à jour des chemins dans run-weston-elinux.sh, launch-kioskdiag.sh,
+    #   run-weston-chromium.sh (kioskview), kioskdiag.service, puis
+    #   daemon-reload, reboot de validation, et enfin :
+    sudo rm -rf /data/kioskdiag-pi
+
+Depuis : le blob vit dans `/data/mali/` (partagé), l'appli dans
+`/data/kioskdiag/`. Les scripts des deux dépôts pointent sur ces chemins.
+
 **TODO à vérifier sur borne** : figer les versions exactes
 (`apt list --installed | grep …`) de weston, docker, libinput-tools au moment
 du snapshot, et les noter ici.
@@ -186,9 +203,9 @@ base :
 /data/
 ├── docker/                     # data-root Docker (daemon.json)
 ├── containerd/                 # bind-mounté sur /var/lib/containerd (fstab)
-├── kioskdiag-pi/
-│   └── libmali-bifrost-g52-g24p0-x11-wayland-gbm.so   # blob Mali (sha256 dans deploy/blobs/README.md)
-└── kioskdiag-gtk/              # bundle flutter-elinux à la racine
+├── mali/
+│   └── libmali-bifrost-g52-g24p0-x11-wayland-gbm.so   # blob Mali partagé kioskview+kioskdiag (sha256 dans deploy/blobs/README.md)
+└── kioskdiag/                  # bundle flutter-elinux à la racine
     ├── kioskdiag               # binaire embedder
     ├── lib/  data/             # runtime du bundle
     ├── eglshim.c  eglshim.so   # shim EGL (compilé sur place)
@@ -280,7 +297,7 @@ de l'image de référence, sans reflash :
 - **Binaires compilés** (`gesture-daemon`, `eglshim.so`) : soit committer les
   arm64, soit un exec de compilation idempotent (`creates =>`).
 - **Le bundle kioskdiag** comme artefact versionné déployé dans
-  `/data/kioskdiag-gtk/`, et le blob Mali dans `/data/kioskdiag-pi/`
+  `/data/kioskdiag/`, et le blob Mali dans `/data/mali/`
   (vérifiable par son sha256).
 - **Le touchscreen** : ne pas coder event5 en dur. Le résoudre par nom
   (ILITEK), soit par une règle udev qui crée un symlink stable type

@@ -14,11 +14,11 @@
 #    l'embedder eLinux -> on la fait dabs l'appli RotatedBox et _quarterTurns.
 set -eu
 
-BUNDLE=/data/kioskdiag-gtk
+BUNDLE=/data/kioskdiag
 BIN="$BUNDLE/kioskdiag"
 SHIM=/run/kioskdiag-mali
 WDISP=wayland-tbx
-MALI=/data/kioskdiag-pi/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so
+MALI=/data/mali/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so
 SHIMSO="$BUNDLE/eglshim.so"
 [ -e "$MALI" ]   || { echo "blob absent: $MALI" >&2; exit 1; }
 [ -e "$SHIMSO" ] || { echo "eglshim.so absent: $SHIMSO" >&2; exit 1; }

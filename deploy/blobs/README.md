@@ -21,8 +21,8 @@ plateforme et ne marche pas.
 
 ```sh
 xz -dc libmali-bifrost-g52-g24p0-x11-wayland-gbm.so.xz \
-  > /data/kioskdiag-pi/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so
-sha256sum /data/kioskdiag-pi/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so
+  > /data/mali/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so
+sha256sum /data/mali/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so
 ```
 
 Le script `deploy/run-weston-elinux.sh` attend le `.so` à ce chemin.

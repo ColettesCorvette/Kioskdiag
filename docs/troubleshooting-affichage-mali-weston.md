@@ -121,11 +121,11 @@ idle-time=0.
    docker build -f Dockerfile.elinux --target export \
      --output type=local,dest=dist-elinux .
    ```
-2. Copier le bundle dist-elinux/ dans /data/kioskdiag-gtk/ sur la carte, avec
+2. Copier le bundle dist-elinux/ dans /data/kioskdiag/ sur la carte, avec
    eglshim.so et run-weston-elinux.sh.
 3. Lancer :
    ```sh
-   sudo openvt -fs -c 2 -- /data/kioskdiag-gtk/run-weston-elinux.sh
+   sudo openvt -fs -c 2 -- /data/kioskdiag/run-weston-elinux.sh
    ```
 
 Le script deploy/run-weston-elinux.sh contient la config commentée.

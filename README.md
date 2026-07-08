@@ -80,14 +80,14 @@ le démon de geste) est documenté pas à pas dans
 seul :
 
 ```sh
-# copier le bundle à la racine de /data/kioskdiag-gtk/
-rsync -a --delete dist-elinux/ orbinea@fluxia:/data/kioskdiag-gtk/
+# copier le bundle à la racine de /data/kioskdiag/
+rsync -a --delete dist-elinux/ orbinea@fluxia:/data/kioskdiag/
 
 # compiler le shim EGL, une fois, sur la carte
 gcc -shared -fPIC -O2 -o eglshim.so eglshim.c -ldl
 
 # lancer en autonome (weston + appli) via un VT réel
-sudo openvt -fs -c 2 -- /data/kioskdiag-gtk/run-weston-elinux.sh
+sudo openvt -fs -c 2 -- /data/kioskdiag/run-weston-elinux.sh
 ```
 
 En fonctionnement normal, kioskdiag n'est pas lancé comme ça : c'est le geste

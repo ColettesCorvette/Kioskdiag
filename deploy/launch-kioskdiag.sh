@@ -3,10 +3,10 @@
 # demande (déclenché par gesture-daemon). Mono-instance via verrou flock.
 set -eu
 
-BUNDLE=/data/kioskdiag-gtk
+BUNDLE=/data/kioskdiag
 BIN="$BUNDLE/kioskdiag"
 SHIMSO="$BUNDLE/eglshim.so"
-MALI=/data/kioskdiag-pi/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so
+MALI=/data/mali/libmali-bifrost-g52-g24p0-x11-wayland-gbm.so
 SHIM=/run/kioskview-mali          # même base que le script weston kioskview
 WDISP=wayland-tc
 

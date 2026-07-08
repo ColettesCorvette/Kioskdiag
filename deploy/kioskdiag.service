@@ -1,16 +1,16 @@
 [Unit]
 Description=Kioskdiag kiosque (weston + flutter-elinux, Mali g24p0)
-Documentation=file:/data/kioskdiag-gtk/run-weston-elinux.sh
+Documentation=file:/data/kioskdiag/run-weston-elinux.sh
 # Pas de section [Install] -> le service ne peut pas etre enable,
 # donc il ne demarre pas tout seul au boot. Demarrage 100% manuel.
-ConditionPathExists=/data/kioskdiag-gtk/run-weston-elinux.sh
+ConditionPathExists=/data/kioskdiag/run-weston-elinux.sh
 
 [Service]
 Type=simple
 # weston en backend DRM exige un VT actif, sinon il bloque sur VT_WAITACTIVE.
 # openvt -fsw : bascule sur le VT 2, le rend actif, et attend la fin du kiosque
 # le -w est indispensable pour que systemd suive le cycle de vie du service.
-ExecStart=/usr/bin/openvt -fsw -c 2 -- /data/kioskdiag-gtk/run-weston-elinux.sh
+ExecStart=/usr/bin/openvt -fsw -c 2 -- /data/kioskdiag/run-weston-elinux.sh
 
 # Le script lance weston et le client en arriere-plan ; a l'arret, on tue tout
 # le groupe de controle pour ne laisser ni weston ni l'appli orphelins.
