@@ -28,20 +28,25 @@ lib/
 ├── main.dart                 # point d'entrée
 ├── app.dart                  # MaterialApp + thème Material 3
 ├── theme.dart                # palette de couleurs
-├── models/                   # données affichées — tout est en mock pour l'instant
+├── models/                   # données affichées ; les .mock servent de repli aux services
 ├── screens/
 │   ├── home_shell.dart       # en-tête, rotation, navigation entre les 4 onglets
 │   ├── dashboard_screen.dart # uptime, disque, perf mémoire/CPU
 │   ├── lecteurs_screen.dart  # liste des lecteurs (RFID, QR, bouton)
 │   ├── tests_screen.dart     # commandes de rotation + test du bouton poussoir
 │   └── connectivite_screen.dart # config réseau + pavé numérique tactile
+├── services/                 # vraies données (uptime/disque via /proc, câble
+│                             # ethernet via /sys, gatectl en HTTP port 8080)
 ├── util/                     # code par plateforme (imports conditionnels io/stub)
 └── widgets/                  # cartes, graphes, anneau disque, pastilles, pavé
 ```
 
-Les quatre onglets existent mais les données sont encore mockées
-(`DiagnosticData.mock`, `ReaderInfo.mock`) : les vraies métriques système et la
-vraie config réseau restent à brancher.
+Sur la borne, les onglets affichent les vraies données via `services/`
+(imports conditionnels io/stub, car `dart:io` n'existe pas en web). Sur Mac et
+dans les tests, où /proc et /sys n'existent pas, les services retombent sur
+les valeurs des constructeurs `.mock` — mock et fallbacks doivent rester
+identiques. Le contrat HTTP avec la gatectl est une proposition non
+confirmée (voir `turnstile_control_io.dart`).
 
 Un détail qui compte : la rotation de l'écran se fait **dans l'appli** (un
 `RotatedBox`), jamais côté weston — son transform de sortie fait crasher
@@ -80,8 +85,13 @@ le démon de geste) est documenté pas à pas dans
 seul :
 
 ```sh
-# copier le bundle à la racine de /data/kioskdiag/
-rsync -a --delete dist-elinux/ orbinea@fluxia:/data/kioskdiag/
+# copier le bundle — PAS de --delete : /data/kioskdiag/ contient aussi les
+# scripts, eglshim et gesture-daemon. lib/ et data/ appartiennent à orbinea ;
+# le dossier racine à root, donc le binaire top-level (qui ne change que si
+# l'embedder change) passe par sudo.
+rsync -a dist-elinux/lib dist-elinux/data orbinea@fluxia:/data/kioskdiag/
+scp dist-elinux/kioskdiag orbinea@fluxia:/tmp/ \
+  && ssh -t orbinea@fluxia sudo install -m755 /tmp/kioskdiag /data/kioskdiag/
 
 # compiler le shim EGL, une fois, sur la carte
 gcc -shared -fPIC -O2 -o eglshim.so eglshim.c -ldl
@@ -91,7 +101,9 @@ sudo openvt -fs -c 2 -- /data/kioskdiag/run-weston-elinux.sh
 ```
 
 En fonctionnement normal, kioskdiag n'est pas lancé comme ça : c'est le geste
-4 coins qui le démarre en client du weston de kioskview (voir
+4 coins qui le démarre en client du weston de kioskview — et si ce weston
+est mort, `launch-kioskdiag.sh` bascule tout seul en weston autonome, l'accès
+diag survit à un kioskview HS (voir
 [deploy/README-acces-diag.md](deploy/README-acces-diag.md)).
 
 ## Notes

@@ -3,6 +3,14 @@
 Le principe : un petit démon C lit le tactile en evdev et, quand on tape les
 4 coins de l'écran dans l'ordre, il lance kioskdiag par-dessus kioskview.
 
+Si le kiosque kioskview est mort, `launch-kioskdiag.sh` bascule en weston
+autonome (`run-weston-elinux.sh` sur VT3) : l'accès diag survit à un
+kioskview HS. L'aiguillage se fait sur `systemctl is-active
+kioskview-kiosk`, pas sur la présence du fichier socket — un weston tué
+laisse son socket sur disque et un client qui s'y connecte segfaulte
+(vécu). En autonome, le script exporte `KIOSKDIAG_ROTATION=1` : pas de
+transform weston possible, c'est l'app qui pivote.
+
 Deux noms sont partagés avec le kiosque kioskview : le socket `wayland-tc`
 et la base `/run/kioskview-mali`, définis par `kioskview-kiosk.service`
 (dépôt `~/kioskview`). Ils doivent rester identiques entre cette unité et
@@ -57,6 +65,9 @@ n'existe pas, et le service tourne dans le vide. Relire l'ExecStart.
 - kioskview reste réactif au tactile (le démon ne vole pas les events).
 - Survit au reboot : après `sudo reboot`, `systemctl is-enabled gesture-daemon`
   vaut `enabled` et le geste marche toujours.
+- Repli kiosque mort : `sudo systemctl stop kioskview-kiosk`, geste →
+  kioskdiag en weston autonome, portrait. Le refermer, puis
+  `sudo systemctl start kioskview-kiosk`.
 - Si l'ordre des coins ne colle pas au sens physique de la dalle (écran monté
   autrement), ajuster `EXPECTED[]` dans `gesture-daemon.c` et recompiler.
 

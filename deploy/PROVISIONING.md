@@ -135,8 +135,9 @@ Trois fichiers :
 - `/usr/local/bin/gesture-daemon` — lit l'evdev du tactile, détecte la
   séquence 4 coins. Compilé depuis `deploy/gesture-daemon.c`.
 - `/usr/local/bin/launch-kioskdiag.sh` — lance kioskdiag comme client de
-  `wayland-tc`. Vient de `deploy/launch-kioskdiag.sh`. Mono-instance via
-  verrou `flock` sur `/run/kioskdiag.lock`.
+  `wayland-tc`, ou en weston autonome (VT3) si le kiosque kioskview est
+  mort. Vient de `deploy/launch-kioskdiag.sh`. Mono-instance via verrou
+  `flock` sur `/run/kioskdiag.lock`.
 - `/etc/systemd/system/gesture-daemon.service` — lance le démon au boot,
   après kioskview-kiosk.
 
@@ -233,7 +234,9 @@ base :
     boot
      └─ kioskview-kiosk.service   weston DRM sur VT2, socket wayland-tc, chromium
          └─ gesture-daemon.service  lit le tactile, attend le geste
-              └─ geste 4 coins → launch-kioskdiag.sh → kioskdiag client de wayland-tc
+              └─ geste 4 coins → launch-kioskdiag.sh
+                   ├─ kiosque vivant → kioskdiag client de wayland-tc
+                   └─ kiosque mort   → run-weston-elinux.sh sur VT3 (weston autonome)
 
 kioskdiag n'a pas de service au boot : il est lancé à la demande. On en revient
 à kioskview par le bouton Quitter ou par le timeout d'inactivité (3 min) :
@@ -306,6 +309,8 @@ de l'image de référence, sans reflash :
 - **La conf par-borne** : la variable d'environnement `KIOSKDIAG_ROTATION`
   (0 à 3, quarts de tour) pour les tourniquets dont l'écran est monté dans
   l'autre sens — même logique que le `transform=` du weston.ini de
-  kioskview.
+  kioskview. En mode client le défaut 0 convient (le weston du kiosque
+  pivote déjà) ; en weston autonome `run-weston-elinux.sh` exporte un défaut
+  de 1, surchargeable par l'env.
 - **Les invariants** : `wayland-tc` et `/run/kioskview-mali` identiques
   entre l'unité weston kioskview et `launch-kioskdiag.sh`.
