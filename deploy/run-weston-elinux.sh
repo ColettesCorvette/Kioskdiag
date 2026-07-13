@@ -45,6 +45,11 @@ i=0; while [ ! -S "$XDG_RUNTIME_DIR/$WDISP" ] && [ "$i" -lt 40 ]; do i=$((i+1));
 sleep 1
 
 echo ">> kioskdiag (eLinux/wayland, Mali g24p0 hardware)"
+# En autonome, pas de transform weston possible (segfault embedder eLinux) :
+# c'est l'app qui pivote (RotatedBox). Sous le weston du kiosque le compositeur
+# pivote déjà (rotate-90), donc le défaut 0 de l'app y est correct ; ici il
+# faut compenser nous-mêmes. Surchargeable par env (Puppet, par borne).
+export KIOSKDIAG_ROTATION="${KIOSKDIAG_ROTATION:-1}"
 WAYLAND_DISPLAY="$WDISP" EGL_PLATFORM=wayland LD_PRELOAD="$SHIMSO" \
     LD_LIBRARY_PATH="$SHIM/wl:$BUNDLE/lib" \
     "$BIN" --bundle="$BUNDLE" --no-cursor >/tmp/tbx.log 2>&1 &
