@@ -6,7 +6,7 @@ import 'package:kioskdiag/screens/dashboard_screen.dart';
 
 void main() {
   testWidgets(
-      'C2: le disque se rafraîchit toutes les 30s via le lecteur injecté',
+      'le disque se rafraîchit toutes les 30s via le lecteur injecté',
       (tester) async {
     var call = 0;
     final readings = [
@@ -38,7 +38,7 @@ void main() {
   }, skip: kIsWeb);
 
   testWidgets(
-      'C3: carte mémoire affiche Disponible/Mise en cache, plus de champs Windows',
+      'carte mémoire affiche Disponible/Mise en cache, plus de champs Windows',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
@@ -56,7 +56,7 @@ void main() {
   });
 
   testWidgets(
-      "C3: carte CPU affiche la même durée de fonctionnement que les pastilles d'uptime",
+      "carte CPU affiche la même durée de fonctionnement que les pastilles d'uptime",
       (tester) async {
     const uptime = Duration(days: 2, hours: 3, minutes: 4, seconds: 5);
     await tester.pumpWidget(MaterialApp(
@@ -74,7 +74,7 @@ void main() {
   });
 
   testWidgets(
-      'C3: échantillonnage mémoire/CPU tourne 65s sans exception (repli /proc absent)',
+      'échantillonnage mémoire/CPU tourne 65s sans exception (repli /proc absent)',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
@@ -93,7 +93,7 @@ void main() {
   });
 
   testWidgets(
-      'C2: les Go réels (jamais ronds) sont affichés avec 1 décimale max',
+      'les Go réels (jamais ronds) sont affichés avec 1 décimale max',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(

@@ -4,9 +4,8 @@ import '../models/diagnostic_data.dart';
 
 // Les valeurs de repli ci-dessous sont IDENTIQUES à DiagnosticData.mock() :
 // tout `read*` de ce fichier tombe dessus si le fichier /proc attendu est
-// absent ou illisible — cas systématique sur cette machine de dev (macOS,
-// pas de /proc) et donc sur `flutter test`, qui tourne toujours sur la VM
-// Dart native (jamais kIsWeb, cf. leçon Lot F2 sur ethernet_status).
+// absent ou illisible — cas systématique sur macOS (pas de /proc) et donc
+// sur `flutter test`, qui tourne toujours sur la VM Dart native.
 const _fallbackUptime = Duration(days: 5, hours: 10, minutes: 36, seconds: 22);
 
 /// Uptime système lu depuis /proc/uptime (1er champ, secondes). `path` sert
@@ -29,9 +28,8 @@ Duration parseUptime(String content) {
 const _fallbackDisk = DiskInfo(freeGb: 10.8, usedGb: 21.2, totalGb: 32);
 
 /// Espace disque de `path` (par défaut /data : c'est là que tout vit sur la
-/// borne, root est figé à 6 Go). `Process.runSync` (jamais la variante
-/// asynchrone `Process.run` — évite toute interaction fragile avec la zone
-/// FakeAsync des tests widget, cf. leçon Lot F2).
+/// borne, root est figé à 6 Go). `Process.runSync` et pas `Process.run` :
+/// la variante async interagit mal avec le FakeAsync des tests widget.
 DiskInfo readDisk({String path = '/data'}) {
   try {
     final result = Process.runSync('df', ['-B1', path]);

@@ -237,7 +237,7 @@ class _HomeShellState extends State<HomeShell> {
           uptime: _uptime,
           embedFooter: embedFooter,
         ),
-        LecteursScreen(),
+        LecteursScreen(serverIp: _serverIp),
         TestsScreen(serverIp: _serverIp),
         ConnectiviteScreen(serverIp: _serverIp),
       ],

@@ -70,9 +70,9 @@ class ReaderCard extends StatelessWidget {
               text: TextSpan(
                 style: const TextStyle(fontSize: 12, color: Color(0xFF222428)),
                 children: [
-                  const TextSpan(text: 'Dernière lecture : '),
+                  const TextSpan(text: 'Lectures : '),
                   TextSpan(
-                    text: reader.lastRead,
+                    text: '${reader.useCount}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -84,7 +84,7 @@ class ReaderCard extends StatelessWidget {
     );
   }
 
-  Widget _idChip(int id) {
+  Widget _idChip(String id) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(

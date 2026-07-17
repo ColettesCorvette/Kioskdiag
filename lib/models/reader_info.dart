@@ -43,45 +43,66 @@ class ReaderInfo {
     required this.name,
     required this.kind,
     required this.status,
-    required this.lastRead,
+    required this.useCount,
   });
 
-  final int id;
+  final String id;
   final String name;
   final ReaderKind kind;
   final ReaderStatus status;
 
-  /// Dernier support lu sur ce lecteur.
-  final String lastRead;
+  /// Lectures cumulées sur ce lecteur (readers_use_total, persistant).
+  final int useCount;
 
   static List<ReaderInfo> mock() => const [
         ReaderInfo(
-          id: 10,
+          id: '10',
           name: 'RFID S&L Droite 2 Entrée',
           kind: ReaderKind.rfid,
           status: ReaderStatus.ok,
-          lastRead: 'NomSupportLu',
+          useCount: 1234,
         ),
         ReaderInfo(
-          id: 11,
+          id: '11',
           name: 'QR S&L Droite 2 Entrée',
           kind: ReaderKind.qr,
           status: ReaderStatus.pending,
-          lastRead: 'NomSupportLu',
+          useCount: 87,
         ),
         ReaderInfo(
-          id: 12,
+          id: '12',
           name: 'RFID S&L Droite 2 Sortie',
           kind: ReaderKind.rfid,
           status: ReaderStatus.error,
-          lastRead: 'NomSupportLu',
+          useCount: 0,
         ),
         ReaderInfo(
-          id: 13,
+          id: '13',
           name: 'BP Sortie Droite 2',
           kind: ReaderKind.button,
           status: ReaderStatus.ok,
-          lastRead: 'NomSupportLu',
+          useCount: 412,
         ),
       ];
+}
+
+/// Déduit le type de lecteur des labels gatectl (model + port).
+ReaderKind readerKindFor(String model, String name) {
+  final s = '$model $name'.toUpperCase();
+  if (s.contains('QR') || s.contains('BARCODE')) return ReaderKind.qr;
+  if (s.contains('BP') || s.contains('BUTTON') || s.contains('POUSSOIR')) {
+    return ReaderKind.button;
+  }
+  return ReaderKind.rfid;
+}
+
+/// Photo instantanée de l'état des lecteurs, émise par readers_status.
+class ReadersSnapshot {
+  const ReadersSnapshot({required this.readers, required this.reachable});
+
+  final List<ReaderInfo> readers;
+
+  /// false si le dernier scrape de la gatectl a échoué (readers = dernière
+  /// liste connue, ou mock si aucun scrape n'a jamais réussi).
+  final bool reachable;
 }

@@ -56,7 +56,7 @@ void main() {
     expect((perf.dy - uptime.dy).abs(), greaterThan(100));
   });
 
-  testWidgets('B1: bouton Quitter appelle onQuit (spy), jamais exit(0) en test',
+  testWidgets('bouton Quitter appelle onQuit (spy), jamais exit(0) en test',
       (tester) async {
     var quitCalls = 0;
     await tester.pumpWidget(
@@ -73,7 +73,7 @@ void main() {
   });
 
   testWidgets(
-      "A1: uptime ne se réinitialise pas en changeant d'onglet",
+      "uptime ne se réinitialise pas en changeant d'onglet",
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(600, 1024));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -95,7 +95,7 @@ void main() {
   });
 
   testWidgets(
-      'F5: dalle portrait plus grande (800×1280) → NavigationBar, '
+      'dalle portrait plus grande (800×1280) → NavigationBar, '
       'Dashboard 1 colonne, pas de débordement', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1280));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -117,7 +117,7 @@ void main() {
   });
 
   testWidgets(
-      'F5: dalle paysage plus grande (1280×800) → NavigationRail, '
+      'dalle paysage plus grande (1280×800) → NavigationRail, '
       'Dashboard 2 colonnes, pas de débordement', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1280));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -143,7 +143,7 @@ void main() {
   });
 
   testWidgets(
-      'F5: très grande dalle paysage (1920×1080) → NavigationRail, '
+      'très grande dalle paysage (1920×1080) → NavigationRail, '
       'Dashboard 2 colonnes, pavé numérique sans débordement', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1080, 1920));
     addTearDown(() => tester.binding.setSurfaceSize(null));
