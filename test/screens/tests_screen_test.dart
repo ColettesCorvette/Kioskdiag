@@ -17,7 +17,7 @@ void main() {
     expect(find.text("En attente d'une commande de rotation."), findsOneWidget);
   });
 
-  testWidgets('F4: commande horaire acceptée puis confirmée → bandeau validé',
+  testWidgets('commande horaire acceptée puis confirmée → bandeau validé',
       (tester) async {
     final events = StreamController<EvenementTourniquet>.broadcast();
     addTearDown(events.close);
@@ -42,7 +42,7 @@ void main() {
   });
 
   testWidgets(
-      'F4: commande anti-horaire acceptée puis confirmée → bandeau validé',
+      'commande anti-horaire acceptée puis confirmée → bandeau validé',
       (tester) async {
     final events = StreamController<EvenementTourniquet>.broadcast();
     addTearDown(events.close);
@@ -65,7 +65,7 @@ void main() {
     );
   });
 
-  testWidgets('F4: gatectl refuse la commande → bandeau échec',
+  testWidgets('gatectl refuse la commande → bandeau échec',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: TestsScreen(
@@ -81,7 +81,7 @@ void main() {
   });
 
   testWidgets(
-      'F4: commande acceptée mais aucune confirmation → bandeau échec après le délai',
+      'commande acceptée mais aucune confirmation → bandeau échec après le délai',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: TestsScreen(
@@ -100,7 +100,7 @@ void main() {
   });
 
   testWidgets(
-      'F4: la pastille de sortie reflète le sens réellement confirmé (horaire)',
+      'la pastille de sortie reflète le sens réellement confirmé (horaire)',
       (tester) async {
     final events = StreamController<EvenementTourniquet>.broadcast();
     addTearDown(events.close);
@@ -125,7 +125,7 @@ void main() {
   });
 
   testWidgets(
-      'F4: la pastille de sortie reflète le sens réellement confirmé (anti-horaire)',
+      'la pastille de sortie reflète le sens réellement confirmé (anti-horaire)',
       (tester) async {
     final events = StreamController<EvenementTourniquet>.broadcast();
     addTearDown(events.close);
@@ -148,7 +148,7 @@ void main() {
   });
 
   testWidgets(
-      'F4: statut du test bouton poussoir progresse par étapes (pression puis rotation)',
+      'statut du test bouton poussoir progresse par étapes (pression puis rotation)',
       (tester) async {
     final events = StreamController<EvenementTourniquet>.broadcast();
     addTearDown(events.close);
@@ -178,7 +178,7 @@ void main() {
   });
 
   testWidgets(
-      "F4: taper sur l'illustration réinitialise le statut du bouton poussoir",
+      "taper sur l'illustration réinitialise le statut du bouton poussoir",
       (tester) async {
     final events = StreamController<EvenementTourniquet>.broadcast();
     addTearDown(events.close);
@@ -206,7 +206,7 @@ void main() {
   });
 
   testWidgets(
-      "F4: changer l'IP serveur (contrôleur partagé) réabonne le flux d'événements",
+      "changer l'IP serveur (contrôleur partagé) réabonne le flux d'événements",
       (tester) async {
     final controller = TextEditingController(text: '192.168.10.41');
     addTearDown(controller.dispose);

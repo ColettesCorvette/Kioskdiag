@@ -5,11 +5,8 @@ import '../models/turnstile_event.dart';
 /// Web/preview : accepte toujours la commande (pas de vrai matériel).
 Future<bool> commanderRotation(String serverIp, SensRotation sens) async => true;
 
-/// Web/preview : simule une séquence bouton→rotation une fois à l'abonnement
-/// (reproduit le comportement de confirmation à ~1,2 s de l'ancien mock),
-/// pour que la preview reste utilisable sans matériel. Non re-déclenchable
-/// par un tap (décision F4 : le tap sur l'illustration ne fait plus que
-/// réinitialiser l'affichage, cf. Task 3).
+/// Web/preview : simule bouton puis rotation ~1,2 s après l'abonnement,
+/// pour garder la preview utilisable sans matériel.
 Stream<EvenementTourniquet> evenements(String serverIp) {
   late final StreamController<EvenementTourniquet> controller;
   Timer? timer;
@@ -31,3 +28,6 @@ Stream<EvenementTourniquet> evenements(String serverIp) {
   );
   return controller.stream;
 }
+
+/// Web/preview : port gatectl par défaut.
+int gatectlPort() => 8081;

@@ -1,8 +1,7 @@
-/// Sens de rotation commandé au tourniquet (cf. spec F4).
+/// Sens de rotation commandé au tourniquet.
 enum SensRotation { horaire, antiHoraire }
 
-/// Événement remonté par la gatectl (GET .../evenements) — contrat d'API
-/// PROPOSÉ par le spec F4, à confirmer avec l'équipe gatectl.
+/// Événement remonté par la gatectl (GET .../evenements).
 sealed class EvenementTourniquet {
   const EvenementTourniquet();
 }

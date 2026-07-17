@@ -4,13 +4,15 @@ import 'dart:io';
 
 import '../models/turnstile_event.dart';
 
-// Contrat d'API PROPOSÉ par le spec F4, À CONFIRMER avec l'équipe gatectl
-// avant tout déploiement réel — implémenté selon la proposition du spec,
-// jamais testé contre un vrai serveur. Le format JSON des événements
-// (tableau, champs "type"/"ts"/"sens") est une proposition de ce lot, non
-// spécifiée par le spec, à valider en même temps que le reste du contrat.
-const _port = 8080;
+// Port gatectl : 8081 partout ou presque, KIOSKDIAG_GATECTL_PORT pour
+// les exceptions (bièvre : 3099).
+final _port = int.tryParse(
+        Platform.environment['KIOSKDIAG_GATECTL_PORT'] ?? '') ??
+    8081;
 const _timeout = Duration(seconds: 10);
+
+/// Port de la gatectl, partagé par les services qui lui parlent.
+int gatectlPort() => _port;
 
 /// Commande une rotation du tourniquet. `true` si la gatectl a accepté la
 /// commande (202), `false` sinon (y compris injoignable/timeout).
@@ -34,10 +36,9 @@ Future<bool> commanderRotation(String serverIp, SensRotation sens) async {
 }
 
 /// Stream des événements de la gatectl (polling 500 ms). `Timer.periodic`
-/// classique annulé dans `onCancel` (jamais de générateur async* +
-/// Future.delayed — cf. leçon Lot F2 sur ethernet_status : un générateur
-/// suspendu dans un await ne réagit à l'annulation qu'au prochain yield,
-/// laissant un Timer actif après la destruction du widget).
+/// annulé dans `onCancel` — pas de générateur async* : suspendu dans un
+/// await, il ne voit l'annulation qu'au prochain yield et laisse le Timer
+/// actif après la destruction du widget.
 Stream<EvenementTourniquet> evenements(String serverIp) {
   late final StreamController<EvenementTourniquet> controller;
   Timer? timer;

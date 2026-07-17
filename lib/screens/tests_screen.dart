@@ -13,7 +13,7 @@ enum _RotationState { enAttente, commandeEnvoyee, validee, echec }
 
 /// Onglet Tests : commande la rotation du tourniquet dans les deux sens via
 /// la gatectl et déroule le test du bouton poussoir de sortie à partir des
-/// vrais événements remontés (cf. spec F4).
+/// vrais événements remontés.
 class TestsScreen extends StatefulWidget {
   const TestsScreen({
     super.key,
@@ -126,9 +126,8 @@ class _TestsScreenState extends State<TestsScreen> {
     });
   }
 
-  /// Réinitialise l'affichage du test du bouton poussoir : n'avance plus que
-  /// sur les vrais événements du flux partagé (cf. décision F4 — le tap ne
-  /// simule plus rien, il n'y a plus de matériel factice à déclencher).
+  /// Réinitialise l'affichage du test du bouton poussoir ; la suite ne
+  /// bouge que sur les vrais événements du flux.
   void _pressExitButton() {
     setState(() {
       _buttonPressed = false;
