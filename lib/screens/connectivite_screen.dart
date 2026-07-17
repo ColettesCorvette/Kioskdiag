@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../services/connectivity_check.dart';
 import '../services/ethernet_status.dart';
 import '../theme.dart';
 import '../util/ipv4.dart';
@@ -12,17 +13,22 @@ import '../widgets/status_banner.dart';
 /// adresse du serveur Fluxia, et actions de test / sauvegarde. La saisie se
 /// fait via le pavé numérique embarqué [OnScreenKeypad].
 class ConnectiviteScreen extends StatefulWidget {
-  const ConnectiviteScreen({super.key, this.serverIp, this.ethernetStream});
+  const ConnectiviteScreen(
+      {super.key, this.serverIp, this.ethernetStream, this.testeur});
 
-  /// IP du serveur Fluxia, partagée avec l'onglet Tests (cf. F4). Par
-  /// défaut un contrôleur local (comportement inchangé) ; `HomeShell` lève
-  /// un contrôleur partagé entre les deux onglets en production.
+  /// IP du serveur Fluxia, partagée avec les autres onglets via
+  /// `HomeShell` ; contrôleur local par défaut.
   final TextEditingController? serverIp;
 
   /// Stream de l'état du câble Ethernet. Par défaut `ethernetConnected()` ;
   /// les tests injectent un `Stream<bool>` canné (même pattern que
   /// `HomeShell.onQuit`/`initialQuarterTurns`).
   final Stream<bool>? ethernetStream;
+
+  /// Testeur de connectivité (gatectl/passerelle/internet). Par défaut
+  /// `testerConnectivite` (io réel ou stub web selon la plateforme) ; les
+  /// tests injectent un résultat canné.
+  final TesteurConnectivite? testeur;
 
   @override
   State<ConnectiviteScreen> createState() => _ConnectiviteScreenState();
@@ -47,6 +53,26 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
 
   /// Champ qui reçoit la frappe du pavé, null si le pavé est masqué.
   TextEditingController? _active;
+
+  List<ResultatTest>? _resultats;
+  bool _testEnCours = false;
+
+  Future<void> _lancerTest() async {
+    setState(() => _testEnCours = true);
+    final res =
+        await (widget.testeur ?? testerConnectivite)(_serverIp.text);
+    if (!mounted) return;
+    setState(() {
+      _resultats = res;
+      _testEnCours = false;
+    });
+  }
+
+  String _libelle(CibleTest c) => switch (c) {
+        CibleTest.gatectl => 'Gatectl',
+        CibleTest.passerelle => 'Passerelle',
+        CibleTest.internet => 'Internet',
+      };
 
   @override
   void dispose() {
@@ -130,6 +156,8 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
               children: [
                 _ethernetBanner(),
                 const SizedBox(height: 14),
+                _sectionTest(),
+                const SizedBox(height: 18),
                 _sectionTitle('CONFIGURATION RÉSEAU DU TOURNIQUET'),
                 const SizedBox(height: 10),
                 _modeToggle(),
@@ -176,6 +204,49 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
                 text: 'Câble Ethernet non détecté',
               );
       },
+    );
+  }
+
+  Widget _sectionTest() {
+    return Column(
+      key: const Key('sectionTest'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionTitle('TEST DE CONNECTIVITÉ'),
+        const SizedBox(height: 10),
+        for (final r in _resultats ?? const <ResultatTest>[])
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                Icon(
+                  r.ok ? Icons.check_circle : Icons.cancel,
+                  size: 18,
+                  color: r.ok ? DiagColors.accentDisk : DiagColors.red,
+                ),
+                const SizedBox(width: 8),
+                Text(_libelle(r.cible),
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Text(r.detail,
+                    style: const TextStyle(
+                        fontSize: 12, color: DiagColors.textMuted)),
+              ],
+            ),
+          ),
+        const SizedBox(height: 6),
+        ElevatedButton.icon(
+          onPressed: _testEnCours ? null : _lancerTest,
+          icon: _testEnCours
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.network_check),
+          label: const Text('Lancer le test'),
+        ),
+      ],
     );
   }
 
@@ -308,60 +379,18 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
   }
 
   Widget _actions() {
-    return Row(
-      children: [
-        Expanded(
-          child: Material(
-            color: DiagColors.title,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: _testConnectivity,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.download, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'Tester la connectivité du réseau',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+    return Material(
+      color: DiagColors.accentDisk,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _save,
+        child: const SizedBox(
+          width: 54,
+          height: 50,
+          child: Icon(Icons.save, color: Colors.white, size: 22),
         ),
-        const SizedBox(width: 12),
-        Material(
-          color: DiagColors.accentDisk,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: _save,
-            child: const SizedBox(
-              width: 54,
-              height: 50,
-              child: Icon(Icons.save, color: Colors.white, size: 22),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _testConnectivity() {
-    _closeKeypad();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Test de connectivité du réseau lancé...')),
+      ),
     );
   }
 
@@ -381,10 +410,8 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
       }
     });
     if (_errors.isNotEmpty) return;
-    // TODO (hors périmètre spec F4) : cette sauvegarde reste factice — la
-    // config réseau (IP/masque/passerelle/DNS) n'est jamais réellement
-    // appliquée au système (netplan/nmcli). Seule l'IP serveur Fluxia est
-    // partagée en mémoire avec l'onglet Tests (cf. HomeShell._serverIp).
+    // TODO : sauvegarde factice — la config réseau n'est jamais appliquée
+    // au système (netplan/nmcli). Seule l'IP serveur est partagée en mémoire.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Configuration réseau enregistrée.')),
     );

@@ -1,8 +1,8 @@
 import 'dart:io';
 
 // TODO à vérifier sur borne réelle : chemin par défaut du fichier d'état
-// Puppet. Peut être /var/lib/puppet/state/last_run_summary.yaml selon le
-// paquet installé (cf. spec F1) — à figer seulement une fois confirmé.
+// Puppet (peut être /var/lib/puppet/state/last_run_summary.yaml selon le
+// paquet installé).
 const _defaultPuppetStatePath =
     '/opt/puppetlabs/puppet/cache/state/last_run_summary.yaml';
 

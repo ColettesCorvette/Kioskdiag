@@ -3,11 +3,48 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kioskdiag/screens/connectivite_screen.dart';
+import 'package:kioskdiag/services/connectivity_check.dart';
 import 'package:kioskdiag/widgets/onscreen_keypad.dart';
 
 void main() {
+  testWidgets('Test de connectivité : bouton → 3 résultats affichés',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ConnectiviteScreen(
+            testeur: (ip) async => const [
+              ResultatTest(CibleTest.gatectl, true, '1.2.3.4:8081'),
+              ResultatTest(CibleTest.passerelle, false, 'passerelle introuvable'),
+              ResultatTest(CibleTest.internet, true, '8.8.8.8'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(find.text('Lancer le test'));
+    await tester.pump();
+    await tester.tap(find.text('Lancer le test'));
+    await tester.pumpAndSettle();
+
+    // Scope au conteneur de la section : « Passerelle » est aussi le libellé
+    // du champ de la section « Configuration réseau du tourniquet ».
+    final section = find.byKey(const Key('sectionTest'));
+    expect(find.descendant(of: section, matching: find.text('Gatectl')),
+        findsOneWidget);
+    expect(find.descendant(of: section, matching: find.text('Passerelle')),
+        findsOneWidget);
+    expect(find.descendant(of: section, matching: find.text('Internet')),
+        findsOneWidget);
+    expect(find.byIcon(Icons.check_circle), findsNWidgets(2));
+    expect(find.byIcon(Icons.cancel), findsOneWidget);
+  });
+
   testWidgets(
-    'A3: IP invalide au enregistrement → erreur affichée, pas de succès',
+    'IP invalide au enregistrement → erreur affichée, pas de succès',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -31,6 +68,10 @@ void main() {
       await tester.tap(find.byIcon(Icons.keyboard_arrow_down), warnIfMissed: false);
       await tester.pump();
 
+      // La section « Test de connectivité » allonge l'écran : le bouton
+      // save n'est plus toujours visible sans défiler.
+      await tester.ensureVisible(find.byIcon(Icons.save));
+      await tester.pump();
       await tester.tap(find.byIcon(Icons.save));
       await tester.pump();
 
@@ -40,7 +81,7 @@ void main() {
   );
 
   testWidgets(
-    'A3: sauvegarde réussie quand tous les champs actifs sont valides',
+    'sauvegarde réussie quand tous les champs actifs sont valides',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -48,6 +89,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
       );
 
+      await tester.ensureVisible(find.byIcon(Icons.save));
+      await tester.pump();
       await tester.tap(find.byIcon(Icons.save));
       await tester.pump();
 
@@ -57,7 +100,7 @@ void main() {
   );
 
   testWidgets(
-    'A3: DHCP + DNS invalide → erreur affichée, pas de succès',
+    'DHCP + DNS invalide → erreur affichée, pas de succès',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -85,7 +128,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.keyboard_arrow_down), warnIfMissed: false);
       // pumpAndSettle (et non un simple pump) : la fermeture du clavier
       // déclenche unfocus(), qui lance l'animation de disparition du
-      // curseur clignotant. Avec le bandeau Ethernet (F2) qui décale
+      // curseur clignotant. Avec le bandeau Ethernet qui décale
       // désormais "Mode DHCP" plus bas dans la mise en page, un seul pump()
       // laisse cette transition en cours et le tap suivant peut rater son
       // hit-test.
@@ -107,7 +150,7 @@ void main() {
   );
 
   testWidgets(
-    'A3: insertion refusée au-delà de 15 caractères',
+    'insertion refusée au-delà de 15 caractères',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -139,7 +182,7 @@ void main() {
     },
   );
 
-  testWidgets('G: insertion au milieu du texte (curseur positionné, pas en fin)',
+  testWidgets('insertion au milieu du texte (curseur positionné, pas en fin)',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
@@ -159,7 +202,7 @@ void main() {
     expect(controller.selection, const TextSelection.collapsed(offset: 4));
   });
 
-  testWidgets('G: taper un chiffre remplace une sélection étendue',
+  testWidgets('taper un chiffre remplace une sélection étendue',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
@@ -179,7 +222,7 @@ void main() {
     expect(controller.selection, const TextSelection.collapsed(offset: 1));
   });
 
-  testWidgets('G: backspace efface une sélection étendue', (tester) async {
+  testWidgets('backspace efface une sélection étendue', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
     );
@@ -198,7 +241,7 @@ void main() {
   });
 
   testWidgets(
-      'G: backspace avec le curseur en tout début de champ ne supprime rien',
+      'backspace avec le curseur en tout début de champ ne supprime rien',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
@@ -216,7 +259,7 @@ void main() {
     expect(controller.text, '192.168.10.41'); // inchangé
   });
 
-  testWidgets('G: backspace sur un champ déjà vide ne fait rien (pas de crash)',
+  testWidgets('backspace sur un champ déjà vide ne fait rien (pas de crash)',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
@@ -237,7 +280,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('F3: bascule Statique→DHCP : DNS reste éditable, IP grisée',
+  testWidgets('bascule Statique→DHCP : DNS reste éditable, IP grisée',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
@@ -253,7 +296,7 @@ void main() {
   });
 
   testWidgets(
-      'F3: le pavé reste ouvert si le DNS était actif au moment du basculement',
+      'le pavé reste ouvert si le DNS était actif au moment du basculement',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
@@ -261,7 +304,7 @@ void main() {
 
     await tester.tap(find.byType(TextField).at(3)); // focaliser le DNS
     // pumpAndSettle : laisse l'animation d'apparition du curseur clignotant
-    // du champ focalisé se terminer. Avec le bandeau Ethernet (F2), qui
+    // du champ focalisé se terminer. Avec le bandeau Ethernet, qui
     // décale désormais "Mode DHCP" plus bas dans la mise en page, un simple
     // pump() laissait cette transition en cours et le tap suivant ratait
     // parfois son hit-test — le test passait alors sans avoir réellement
@@ -276,7 +319,7 @@ void main() {
   });
 
   testWidgets(
-      'F3: le pavé se ferme si le champ actif devient grisé au basculement',
+      'le pavé se ferme si le champ actif devient grisé au basculement',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
@@ -292,7 +335,7 @@ void main() {
     expect(find.byType(OnScreenKeypad), findsNothing); // fermé
   });
 
-  testWidgets('F2: câble détecté → bandeau vert "Câble Ethernet détecté"',
+  testWidgets('câble détecté → bandeau vert "Câble Ethernet détecté"',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -308,7 +351,7 @@ void main() {
   });
 
   testWidgets(
-      'F2: câble débranché → bandeau rouge "Câble Ethernet non détecté"',
+      'câble débranché → bandeau rouge "Câble Ethernet non détecté"',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -323,7 +366,7 @@ void main() {
     expect(find.text('Câble Ethernet détecté'), findsNothing);
   });
 
-  testWidgets('F2: transition branché → débranché met le bandeau à jour',
+  testWidgets('transition branché → débranché met le bandeau à jour',
       (tester) async {
     final controller = StreamController<bool>();
     addTearDown(controller.close);
@@ -349,7 +392,7 @@ void main() {
   });
 
   testWidgets(
-      'F4: ConnectiviteScreen et un consommateur externe partagent le même contrôleur serverIp',
+      'ConnectiviteScreen et un consommateur externe partagent le même contrôleur serverIp',
       (tester) async {
     final serverIp = TextEditingController(text: '192.168.10.41');
     addTearDown(serverIp.dispose);

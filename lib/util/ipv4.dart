@@ -1,7 +1,6 @@
 /// Valide une adresse IPv4 stricte : 4 octets séparés par des points, chacun
 /// entre 0 et 255. Les zéros de tête sont refusés (« 01 » invalide, seul
-/// « 0 » est un octet valide) — décision A3 du spec, ambiguïté RFC tranchée
-/// pour éviter toute confusion octal/décimal.
+/// « 0 » est un octet valide) pour éviter toute confusion octal/décimal.
 bool isValidIpv4(String input) {
   final parts = input.split('.');
   if (parts.length != 4) return false;
