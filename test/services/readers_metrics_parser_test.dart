@@ -21,7 +21,7 @@ void main() {
     expect(readers, hasLength(2));
 
     final entree = readers.firstWhere((r) => r.id == 'ts-entree');
-    expect(entree.name, 'IDCAPT — /dev/ttyS3');
+    expect(entree.name, 'Lecteur RFID ttyS3 (IDCAPT)');
     expect(entree.kind, ReaderKind.rfid);
     expect(entree.status, ReaderStatus.ok);
     expect(entree.useCount, 1234);

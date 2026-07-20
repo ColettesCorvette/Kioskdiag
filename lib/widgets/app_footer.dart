@@ -5,8 +5,8 @@ import '../theme.dart';
 import '../util/puppet_mtime.dart';
 
 /// Pied de page partagé : logo texte FLUXIA, copyright/date du dernier
-/// passage Puppet à gauche (cf. Lot F1), version OS à droite. Utilisé dans
-/// le corps du Dashboard (portrait) et comme barre commune du shell (paysage).
+/// passage Puppet à gauche, version OS à droite. Utilisé dans le corps du
+/// Dashboard (portrait) et comme barre commune du shell (paysage).
 class AppFooter extends StatelessWidget {
   const AppFooter({super.key, required this.data});
 
@@ -18,7 +18,7 @@ class AppFooter extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Divider(height: 1),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -32,11 +32,11 @@ class AppFooter extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _fluxia(),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     '${data.copyright} • ${puppetLastRunLabel()}',
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: DiagColors.textMuted,
                     ),
                   ),
@@ -48,9 +48,9 @@ class AppFooter extends StatelessWidget {
               children: [
                 const Text(
                   'Version OS',
-                  style: TextStyle(fontSize: 12, color: DiagColors.textMuted),
+                  style: TextStyle(fontSize: 11, color: DiagColors.textMuted),
                 ),
-                Text(data.osVersion, style: const TextStyle(fontSize: 13)),
+                Text(data.osVersion, style: const TextStyle(fontSize: 12)),
               ],
             ),
           ],
@@ -62,7 +62,7 @@ class AppFooter extends StatelessWidget {
   Widget _fluxia() {
     return Semantics(
       label: 'FLUXIA',
-      child: Image.asset('assets/fluxia_wordmark.png', height: 20),
+      child: Image.asset('assets/fluxia_wordmark.png', height: 16),
     );
   }
 }

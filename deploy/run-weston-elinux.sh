@@ -50,6 +50,11 @@ echo ">> kioskdiag (eLinux/wayland, Mali g24p0 hardware)"
 # pivote déjà (rotate-90), donc le défaut 0 de l'app y est correct ; ici il
 # faut compenser nous-mêmes. Surchargeable par env (Puppet, par borne).
 export KIOSKDIAG_ROTATION="${KIOSKDIAG_ROTATION:-1}"
+# Gatectl = conteneur docker local (port 3099 sur cette borne), câble end1.
+# Mêmes défauts que launch-kioskdiag.sh, pour le cas d'un lancement direct.
+export KIOSKDIAG_GATECTL_IP="${KIOSKDIAG_GATECTL_IP:-127.0.0.1}"
+export KIOSKDIAG_GATECTL_PORT="${KIOSKDIAG_GATECTL_PORT:-3099}"
+export KIOSKDIAG_IFACE="${KIOSKDIAG_IFACE:-end1}"
 WAYLAND_DISPLAY="$WDISP" EGL_PLATFORM=wayland LD_PRELOAD="$SHIMSO" \
     LD_LIBRARY_PATH="$SHIM/wl:$BUNDLE/lib" \
     "$BIN" --bundle="$BUNDLE" --no-cursor >/tmp/tbx.log 2>&1 &

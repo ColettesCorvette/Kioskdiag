@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../services/connectivity_check.dart';
 import '../services/ethernet_status.dart';
+import '../services/network_config.dart';
+import '../services/turnstile_control.dart';
 import '../theme.dart';
 import '../util/ipv4.dart';
 import '../widgets/onscreen_keypad.dart';
@@ -14,7 +16,11 @@ import '../widgets/status_banner.dart';
 /// fait via le pavé numérique embarqué [OnScreenKeypad].
 class ConnectiviteScreen extends StatefulWidget {
   const ConnectiviteScreen(
-      {super.key, this.serverIp, this.ethernetStream, this.testeur});
+      {super.key,
+      this.serverIp,
+      this.ethernetStream,
+      this.testeur,
+      this.networkConfig});
 
   /// IP du serveur Fluxia, partagée avec les autres onglets via
   /// `HomeShell` ; contrôleur local par défaut.
@@ -30,6 +36,11 @@ class ConnectiviteScreen extends StatefulWidget {
   /// tests injectent un résultat canné.
   final TesteurConnectivite? testeur;
 
+  /// Config réseau affichée au départ. Par défaut `readNetworkConfig()` (la
+  /// vraie stack de la borne, champs vides si indisponible) ; les tests
+  /// injectent des valeurs cannées.
+  final NetworkConfig? networkConfig;
+
   @override
   State<ConnectiviteScreen> createState() => _ConnectiviteScreenState();
 }
@@ -40,12 +51,18 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
 
   bool _dhcp = false;
 
-  final _ip = TextEditingController(text: '192.168.10.41');
-  final _mask = TextEditingController(text: '255.255.255.0');
-  final _gateway = TextEditingController(text: '192.168.10.1');
-  final _dns = TextEditingController(text: '192.168.10.1');
+  // Champs pré-remplis avec la vraie config réseau, vides si inconnue.
+  late final NetworkConfig _cfg = widget.networkConfig ?? readNetworkConfig();
+  late final _ip = TextEditingController(text: _cfg.ip ?? '');
+  late final _mask = TextEditingController(text: _cfg.mask ?? '');
+  late final _gateway = TextEditingController(text: _cfg.gateway ?? '');
+  late final _dns = TextEditingController(text: _cfg.dns ?? '');
   late final TextEditingController _serverIp =
-      widget.serverIp ?? TextEditingController(text: '192.168.10.41');
+      widget.serverIp ?? TextEditingController(text: gatectlDefaultIp());
+
+  /// Brouillon de l'IP serveur : le contrôleur partagé (qui pilote les flux
+  /// des autres onglets) n'est mis à jour qu'à la sauvegarde, pas à la frappe.
+  late final _serverDraft = TextEditingController(text: _serverIp.text);
 
   /// Message d'erreur par champ, vide tant qu'aucune sauvegarde invalide n'a
   /// eu lieu.
@@ -58,9 +75,14 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
   bool _testEnCours = false;
 
   Future<void> _lancerTest() async {
+    // Même garde que le save : pas de test vers une adresse invalide.
+    if (!isValidIpv4(_serverDraft.text)) {
+      setState(() => _errors[_serverDraft] = 'Adresse IPv4 invalide');
+      return;
+    }
     setState(() => _testEnCours = true);
     final res =
-        await (widget.testeur ?? testerConnectivite)(_serverIp.text);
+        await (widget.testeur ?? testerConnectivite)(_serverDraft.text);
     if (!mounted) return;
     setState(() {
       _resultats = res;
@@ -76,7 +98,7 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
 
   @override
   void dispose() {
-    for (final c in [_ip, _mask, _gateway, _dns]) {
+    for (final c in [_ip, _mask, _gateway, _dns, _serverDraft]) {
       c.dispose();
     }
     // Ne dispose _serverIp que si on l'a créé nous-mêmes : sinon il est
@@ -99,6 +121,13 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
     if (c == null) return;
     final sel = c.selection;
     final text = c.text;
+    // Confort de saisie : l'octet courant a déjà 3 chiffres → le point est
+    // inséré tout seul avant le chiffre suivant (saisie en fin de champ).
+    if (RegExp(r'^\d$').hasMatch(ch) &&
+        (!sel.isValid || sel.start == text.length)) {
+      final parts = text.split('.');
+      if (parts.length < 4 && parts.last.length == 3) ch = '.$ch';
+    }
     final String newText;
     final int newOffset;
     if (sel.isValid) {
@@ -169,7 +198,8 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
                 const SizedBox(height: 18),
                 _sectionTitle('CONFIGURATION SERVEUR DE FLUXIA'),
                 const SizedBox(height: 10),
-                _field('Adresse IP', _serverIp, alwaysEnabled: true),
+                _field('Adresse IP', _serverDraft, alwaysEnabled: true),
+                _serverIpShortcuts(),
                 const SizedBox(height: 18),
                 _actions(),
                 const SizedBox(height: 8),
@@ -250,6 +280,43 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
     );
   }
 
+  /// Préfixe du sous-réseau local (3 premiers octets de l'IP réelle de la
+  /// borne), base 192.168. si la stack réseau est muette.
+  String get _subnetPrefix {
+    final ip = _cfg.ip;
+    if (ip == null) return '192.168.';
+    final p = ip.split('.');
+    return '${p[0]}.${p[1]}.${p[2]}.';
+  }
+
+  /// Raccourcis serveur : gatectl locale, ou début d'adresse sur le
+  /// sous-réseau détecté (le pavé s'ouvre pour compléter).
+  Widget _serverIpShortcuts() {
+    return Wrap(
+      spacing: 8,
+      children: [
+        for (final ip in ['127.0.0.1', _subnetPrefix])
+          ActionChip(
+            key: Key('ipShortcut_$ip'),
+            label: Text(ip + (ip.endsWith('.') ? '…' : ''),
+                style: const TextStyle(fontSize: 12)),
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              setState(() {
+                _errors.remove(_serverDraft);
+                // Préfixe à compléter → garder le pavé ouvert sur le champ.
+                if (ip.endsWith('.')) _active = _serverDraft;
+              });
+              _serverDraft.value = TextEditingValue(
+                text: ip,
+                selection: TextSelection.collapsed(offset: ip.length),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
   Widget _sectionTitle(String text) {
     return Text(
       text,
@@ -278,7 +345,7 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
               _dhcp = true;
               // Ne fermer le pavé que si le champ actif devient grisé par le
               // basculement (DNS et IP serveur Fluxia restent éditables).
-              if (_active != _dns && _active != _serverIp) _active = null;
+              if (_active != _dns && _active != _serverDraft) _active = null;
             });
           }),
         ],
@@ -398,7 +465,7 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
     _closeKeypad();
     final toValidate = <TextEditingController>{
       _dns,
-      _serverIp,
+      _serverDraft,
       if (!_dhcp) ...{_ip, _mask, _gateway},
     };
     setState(() {
@@ -408,8 +475,18 @@ class _ConnectiviteScreenState extends State<ConnectiviteScreen> {
           _errors[c] = 'Adresse IPv4 invalide';
         }
       }
+      // Cohérence : en statique, la passerelle doit être joignable depuis
+      // l'IP à travers le masque.
+      if (_errors.isEmpty &&
+          !_dhcp &&
+          !sameIpv4Subnet(_ip.text, _gateway.text, _mask.text)) {
+        _errors[_gateway] = 'Passerelle hors du sous-réseau';
+      }
     });
     if (_errors.isNotEmpty) return;
+    // L'IP serveur ne s'applique qu'ici : les flux des autres onglets se
+    // réabonnent quand le contrôleur partagé change.
+    _serverIp.text = _serverDraft.text;
     // TODO : sauvegarde factice — la config réseau n'est jamais appliquée
     // au système (netplan/nmcli). Seule l'IP serveur est partagée en mémoire.
     ScaffoldMessenger.of(context).showSnackBar(

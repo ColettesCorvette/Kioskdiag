@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../models/diagnostic_data.dart';
 import '../services/system_metrics.dart';
+import '../services/turnstile_control.dart';
 import '../theme.dart';
 import '../util/quit.dart';
 import '../widgets/app_footer.dart';
@@ -62,7 +63,7 @@ class _HomeShellState extends State<HomeShell> {
   late int _quarterTurns = _defaultQuarterTurns;
   late Duration _uptime = readUptime();
   final TextEditingController _serverIp =
-      TextEditingController(text: '192.168.10.41');
+      TextEditingController(text: gatectlDefaultIp());
   late final Timer _uptimeTimer;
   late final Timer _uptimeResyncTimer;
 

@@ -38,7 +38,7 @@ class TestsScreen extends StatefulWidget {
 
 class _TestsScreenState extends State<TestsScreen> {
   late final TextEditingController _serverIp =
-      widget.serverIp ?? TextEditingController(text: '192.168.10.41');
+      widget.serverIp ?? TextEditingController(text: control.gatectlDefaultIp());
   late final Future<bool> Function(String, SensRotation) _commanderRotation =
       widget.commanderRotation ?? control.commanderRotation;
   late final Stream<EvenementTourniquet> Function(String) _evenementsSource =
@@ -51,7 +51,6 @@ class _TestsScreenState extends State<TestsScreen> {
   String? _echecRaison;
   Timer? _rotationTimeoutTimer;
 
-  bool _buttonPressed = false;
   bool _rotationDetected = false;
   SensRotation _detectedSens = SensRotation.horaire;
 
@@ -82,21 +81,29 @@ class _TestsScreenState extends State<TestsScreen> {
     super.dispose();
   }
 
+  /// Sens réellement détecté à la validation. Peut différer du sens commandé :
+  /// le relais ne fait que déverrouiller le mécanisme, la rotation vient de la
+  /// poussée — on valide donc toute rotation et on affiche le sens constaté.
+  SensRotation? _valideSens;
+
   void _onEvenement(EvenementTourniquet evt) {
     if (evt is RotationDetectee) {
-      if (_rotationState == _RotationState.commandeEnvoyee &&
-          evt.sens == _rotationSens) {
+      if (_rotationState == _RotationState.commandeEnvoyee) {
         _rotationTimeoutTimer?.cancel();
-        setState(() => _rotationState = _RotationState.validee);
+        setState(() {
+          _rotationState = _RotationState.validee;
+          _valideSens = evt.sens;
+        });
       }
-      if (_buttonPressed && !_rotationDetected) {
+      // Le bouton poussoir est un contact sec câblé sur la carte mTripod :
+      // la pression elle-même n'est pas détectable logiciellement, seule la
+      // rotation de sortie qui en résulte l'est.
+      else if (!_rotationDetected) {
         setState(() {
           _rotationDetected = true;
           _detectedSens = evt.sens;
         });
       }
-    } else if (evt is BoutonSortiePresse) {
-      setState(() => _buttonPressed = true);
     }
   }
 
@@ -129,10 +136,7 @@ class _TestsScreenState extends State<TestsScreen> {
   /// Réinitialise l'affichage du test du bouton poussoir ; la suite ne
   /// bouge que sur les vrais événements du flux.
   void _pressExitButton() {
-    setState(() {
-      _buttonPressed = false;
-      _rotationDetected = false;
-    });
+    setState(() => _rotationDetected = false);
   }
 
   @override
@@ -224,12 +228,20 @@ class _TestsScreenState extends State<TestsScreen> {
           text: 'Commande envoyée...',
         );
       case _RotationState.validee:
-        final sens =
-            _rotationSens == SensRotation.horaire ? 'horaire' : 'anti-horaire';
+        String lib(SensRotation? s) =>
+            s == SensRotation.horaire ? 'horaire' : 'anti-horaire';
+        if (_valideSens != null && _valideSens != _rotationSens) {
+          return StatusBanner(
+            color: DiagColors.accentUptime,
+            icon: Icons.check,
+            text: 'Rotation détectée sens ${lib(_valideSens)} '
+                '(commande ${lib(_rotationSens)}).',
+          );
+        }
         return StatusBanner(
           color: DiagColors.accentDisk,
           icon: Icons.check,
-          text: 'Rotation du bras dans le sens $sens validée.',
+          text: 'Rotation du bras dans le sens ${lib(_rotationSens)} validée.',
         );
       case _RotationState.echec:
         return StatusBanner(
@@ -298,8 +310,8 @@ class _TestsScreenState extends State<TestsScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             TextSpan(
-              text: ' et attendez la confirmation de passage par rotation '
-                  'des bras.',
+              text: ' puis poussez le bras : la rotation de sortie confirme '
+                  'le test.',
             ),
           ],
         ),
@@ -338,9 +350,7 @@ class _TestsScreenState extends State<TestsScreen> {
           style: TextStyle(fontSize: 11, color: DiagColors.textMuted),
         ),
         const SizedBox(height: 8),
-        _statusLine('Pression du Bouton :', done: _buttonPressed),
-        const SizedBox(height: 6),
-        _statusLine('Rotation détectée :', done: _rotationDetected),
+        _statusLine('Rotation de sortie :', done: _rotationDetected),
         const SizedBox(height: 10),
         if (_rotationDetected) ...[
           const Center(

@@ -14,6 +14,11 @@ const _timeout = Duration(seconds: 10);
 /// Port de la gatectl, partagé par les services qui lui parlent.
 int gatectlPort() => _port;
 
+/// IP par défaut de la gatectl, configurable par borne (127.0.0.1 quand
+/// elle est locale). Modifiable ensuite dans l'onglet Connectivité.
+String gatectlDefaultIp() =>
+    Platform.environment['KIOSKDIAG_GATECTL_IP'] ?? '192.168.10.41';
+
 /// Commande une rotation du tourniquet. `true` si la gatectl a accepté la
 /// commande (202), `false` sinon (y compris injoignable/timeout).
 Future<bool> commanderRotation(String serverIp, SensRotation sens) async {
@@ -44,6 +49,11 @@ Stream<EvenementTourniquet> evenements(String serverIp) {
   Timer? timer;
   var cancelled = false;
   var depuis = 0;
+  // Le buffer gatectl garde jusqu'à 100 événements passés : le premier
+  // tick sert uniquement à se caler sur le dernier ts, sans les émettre,
+  // sinon chaque ouverture de l'onglet rejoue l'historique (fausses
+  // validations de rotation / bouton).
+  var first = true;
   // Un seul tick en vol à la fois : gatectl injoignable = chaque requête
   // attend jusqu'au timeout (10 s), et sans cette garde le Timer 500 ms
   // empilerait ~20 requêtes concurrentes en permanence (et deux ticks
@@ -67,7 +77,7 @@ Stream<EvenementTourniquet> evenements(String serverIp) {
         final map = raw as Map<String, dynamic>;
         final ts = map['ts'] as int?;
         if (ts != null && ts > depuis) depuis = ts;
-        if (cancelled) continue;
+        if (cancelled || first) continue;
         final type = map['type'] as String?;
         if (type == 'bouton_sortie_presse') {
           controller.add(const BoutonSortiePresse());
@@ -78,6 +88,7 @@ Stream<EvenementTourniquet> evenements(String serverIp) {
           ));
         }
       }
+      first = false;
     } catch (_) {
       // Gatectl injoignable pour ce cycle : on retente au prochain tick.
     } finally {

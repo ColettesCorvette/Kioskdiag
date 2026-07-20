@@ -27,6 +27,12 @@ for f in libEGL.so.1 libGLESv2.so.2 libwayland-egl.so.1; do ln -sf "$MALI" "$SHI
 
 export XDG_RUNTIME_DIR=/run/user/0
 
+# Gatectl = conteneur docker local de la borne (port 3099 sur celle-ci),
+# câble sur end1. Surchargeable par env (Puppet, par borne).
+export KIOSKDIAG_GATECTL_IP="${KIOSKDIAG_GATECTL_IP:-127.0.0.1}"
+export KIOSKDIAG_GATECTL_PORT="${KIOSKDIAG_GATECTL_PORT:-3099}"
+export KIOSKDIAG_IFACE="${KIOSKDIAG_IFACE:-end1}"
+
 # Le critère client/autonome est l'ÉTAT DU SERVICE kiosque, pas la présence du
 # fichier socket : un weston tué laisse son socket sur le disque, et un client
 # qui s'y connecte segfaulte. Le socket ne sert qu'à attendre que weston soit

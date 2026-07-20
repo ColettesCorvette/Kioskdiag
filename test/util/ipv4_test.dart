@@ -38,4 +38,33 @@ void main() {
       expect(isValidIpv4('1.2.3.-1'), isFalse);
     });
   });
+
+  group('sameIpv4Subnet', () {
+    test('même /24', () {
+      expect(
+        sameIpv4Subnet('192.168.10.41', '192.168.10.1', '255.255.255.0'),
+        isTrue,
+      );
+    });
+
+    test('sous-réseaux différents', () {
+      expect(
+        sameIpv4Subnet('192.168.10.41', '10.30.0.1', '255.255.255.0'),
+        isFalse,
+      );
+    });
+
+    test('adresse invalide → false', () {
+      expect(sameIpv4Subnet('', '192.168.10.1', '255.255.255.0'), isFalse);
+    });
+  });
+
+  group('maskFromPrefix', () {
+    test('valeurs usuelles', () {
+      expect(maskFromPrefix(24), '255.255.255.0');
+      expect(maskFromPrefix(16), '255.255.0.0');
+      expect(maskFromPrefix(32), '255.255.255.255');
+      expect(maskFromPrefix(0), '0.0.0.0');
+    });
+  });
 }

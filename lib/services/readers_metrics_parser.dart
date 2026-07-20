@@ -32,10 +32,7 @@ List<ReaderInfo> parseReadersMetrics(String body) {
     for (final i in infos)
       ReaderInfo(
         id: i['reader_id'] ?? '?',
-        name: [
-          if ((i['model'] ?? '').isNotEmpty) i['model'],
-          i['name'] ?? '',
-        ].join(' — '),
+        name: _readableName(i['model'] ?? '', i['name'] ?? ''),
         kind: readerKindFor(i['model'] ?? '', i['name'] ?? ''),
         status: switch (avail['${i['reader_id']}|${i['name']}']) {
           true => ReaderStatus.ok,
@@ -45,4 +42,20 @@ List<ReaderInfo> parseReadersMetrics(String body) {
         useCount: use[i['reader_id']] ?? 0,
       ),
   ];
+}
+
+/// "VGUANG" + "/dev/ttyS9" → "Lecteur QR ttyS9 (VGUANG)" : libellé lisible
+/// plutôt que les identifiants bruts de la gatectl.
+String _readableName(String model, String port) {
+  final kindLabel = switch (readerKindFor(model, port)) {
+    ReaderKind.qr => 'Lecteur QR',
+    ReaderKind.button => 'Bouton',
+    ReaderKind.rfid => 'Lecteur RFID',
+  };
+  final tty = port.split('/').last;
+  return [
+    kindLabel,
+    if (tty.isNotEmpty) tty,
+    if (model.isNotEmpty) '($model)',
+  ].join(' ');
 }

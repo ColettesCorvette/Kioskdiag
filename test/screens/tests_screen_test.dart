@@ -65,6 +65,30 @@ void main() {
     );
   });
 
+  testWidgets(
+      'sens détecté différent du sens commandé → validé quand même, décalage affiché',
+      (tester) async {
+    final events = StreamController<EvenementTourniquet>.broadcast();
+    addTearDown(events.close);
+    await tester.pumpWidget(MaterialApp(
+      home: TestsScreen(
+        commanderRotation: (ip, sens) async => true,
+        evenements: (ip) => events.stream,
+      ),
+    ));
+
+    await tester.tap(find.byIcon(Icons.rotate_right)); // commande horaire
+    await tester.pump();
+
+    events.add(const RotationDetectee(SensRotation.antiHoraire));
+    await tester.pump();
+
+    expect(
+      find.text('Rotation détectée sens anti-horaire (commande horaire).'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('gatectl refuse la commande → bandeau échec',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
@@ -111,14 +135,7 @@ void main() {
       ),
     ));
 
-    events.add(const BoutonSortiePresse());
-    await tester.pump();
     events.add(const RotationDetectee(SensRotation.horaire));
-    // Un deuxième événement livré sur un StreamController.broadcast() après
-    // un pump() intermédiaire prend un tour de microtask supplémentaire
-    // avant que setState ne déclenche le rebuild : un seul pump() ne suffit
-    // pas ici (constaté empiriquement, indépendant de la machine à états).
-    await tester.pump();
     await tester.pump();
 
     expect(find.text('Sortie sens Horaire détectée'), findsOneWidget);
@@ -136,19 +153,14 @@ void main() {
       ),
     ));
 
-    events.add(const BoutonSortiePresse());
-    await tester.pump();
     events.add(const RotationDetectee(SensRotation.antiHoraire));
-    // cf. commentaire du test symétrique (sens horaire) ci-dessus : le
-    // deuxième événement livré nécessite un pump() de plus.
-    await tester.pump();
     await tester.pump();
 
     expect(find.text('Sortie sens Anti-Horaire détectée'), findsOneWidget);
   });
 
   testWidgets(
-      'statut du test bouton poussoir progresse par étapes (pression puis rotation)',
+      "une rotation pendant une commande en cours valide la commande, pas le test de sortie",
       (tester) async {
     final events = StreamController<EvenementTourniquet>.broadcast();
     addTearDown(events.close);
@@ -159,22 +171,20 @@ void main() {
       ),
     ));
 
-    expect(find.text('En attente...'), findsNWidgets(2));
-
-    events.add(const BoutonSortiePresse());
-    await tester.pump();
-
     expect(find.text('En attente...'), findsOneWidget);
-    expect(find.text('Sortie sens Horaire détectée'), findsNothing);
 
+    await tester.tap(find.byIcon(Icons.rotate_right));
+    await tester.pump();
     events.add(const RotationDetectee(SensRotation.horaire));
-    // cf. commentaire plus haut dans ce fichier : deuxième événement livré
-    // après un pump() intermédiaire, un pump() de plus est nécessaire.
-    await tester.pump();
     await tester.pump();
 
-    expect(find.text('En attente...'), findsNothing);
-    expect(find.text('Sortie sens Horaire détectée'), findsOneWidget);
+    expect(
+      find.text('Rotation du bras dans le sens horaire validée.'),
+      findsOneWidget,
+    );
+    // Le test de sortie n'a pas consommé l'événement de la commande.
+    expect(find.text('Sortie sens Horaire détectée'), findsNothing);
+    expect(find.text('En attente...'), findsOneWidget);
   });
 
   testWidgets(
@@ -189,19 +199,14 @@ void main() {
       ),
     ));
 
-    events.add(const BoutonSortiePresse());
-    await tester.pump();
     events.add(const RotationDetectee(SensRotation.horaire));
-    // cf. commentaire plus haut dans ce fichier : deuxième événement livré
-    // après un pump() intermédiaire, un pump() de plus est nécessaire.
-    await tester.pump();
     await tester.pump();
     expect(find.text('Sortie sens Horaire détectée'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('turnstile_illustration')));
     await tester.pump();
 
-    expect(find.text('En attente...'), findsNWidgets(2));
+    expect(find.text('En attente...'), findsOneWidget);
     expect(find.text('Sortie sens Horaire détectée'), findsNothing);
   });
 

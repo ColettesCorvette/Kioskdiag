@@ -8,13 +8,15 @@ void main() {
   });
 
   test(
-      'readersSnapshots : serveur injoignable → snapshot mock reachable=false, '
+      'readersSnapshots : serveur injoignable → snapshot vide reachable=false, '
       'annulation propre (pas de Timer pendant)', () async {
-    final sub = readersSnapshots('127.0.0.1').listen(null);
-    final first = await readersSnapshots('127.0.0.1').first
+    // .invalid (NXDOMAIN garanti) : 127.0.0.1 entrerait en collision avec le
+    // faux serveur du test des événements, qui écoute sur le même port.
+    final sub = readersSnapshots('gatectl.invalid').listen(null);
+    final first = await readersSnapshots('gatectl.invalid').first
         .timeout(const Duration(seconds: 15));
     expect(first.reachable, false);
-    expect(first.readers, isNotEmpty); // repli mock
+    expect(first.readers, isEmpty); // jamais de valeurs fictives sur la borne
     await sub.cancel();
   });
 }

@@ -4,7 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kioskdiag/screens/connectivite_screen.dart';
 import 'package:kioskdiag/services/connectivity_check.dart';
+import 'package:kioskdiag/services/network_config.dart';
 import 'package:kioskdiag/widgets/onscreen_keypad.dart';
+
+// Sur la borne les champs sont pré-remplis avec la vraie stack réseau ; les
+// tests injectent ces valeurs cannées (la lecture réelle rendrait les champs
+// vides ou dépendants de la machine).
+const _demoCfg = NetworkConfig(
+  ip: '192.168.10.41',
+  mask: '255.255.255.0',
+  gateway: '192.168.10.1',
+  dns: '192.168.10.1',
+);
 
 void main() {
   testWidgets('Test de connectivité : bouton → 3 résultats affichés',
@@ -14,7 +25,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ConnectiviteScreen(
+          body: ConnectiviteScreen(networkConfig: _demoCfg, 
             testeur: (ip) async => const [
               ResultatTest(CibleTest.gatectl, true, '1.2.3.4:8081'),
               ResultatTest(CibleTest.passerelle, false, 'passerelle introuvable'),
@@ -49,7 +60,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(800, 600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+        const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
       );
 
       // Champ "Adresse IP" du tourniquet : premier TextField de l'écran.
@@ -86,7 +97,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(800, 600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+        const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
       );
 
       await tester.ensureVisible(find.byIcon(Icons.save));
@@ -105,7 +116,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(800, 600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+        const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
       );
 
       // Invalider le DNS en mode Statique (DNS est le 4e TextField, index 3)
@@ -155,7 +166,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(800, 600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+        const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
       );
 
       // Focaliser le champ IP tourniquet (index 0)
@@ -185,7 +196,7 @@ void main() {
   testWidgets('insertion au milieu du texte (curseur positionné, pas en fin)',
       (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
     );
     await tester.tap(find.byType(TextField).at(0));
     await tester.pump();
@@ -205,7 +216,7 @@ void main() {
   testWidgets('taper un chiffre remplace une sélection étendue',
       (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
     );
     await tester.tap(find.byType(TextField).at(0));
     await tester.pump();
@@ -222,9 +233,142 @@ void main() {
     expect(controller.selection, const TextSelection.collapsed(offset: 1));
   });
 
+  testWidgets('point inséré automatiquement après un octet de 3 chiffres',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
+    );
+    await tester.tap(find.byType(TextField).at(0));
+    await tester.pump();
+
+    final controller =
+        tester.widget<TextField>(find.byType(TextField).at(0)).controller!;
+    for (var i = 0; i < 14; i++) {
+      await tester.tap(find.byIcon(Icons.backspace_outlined));
+      await tester.pump();
+    }
+    expect(controller.text, '');
+
+    for (final ch in ['1', '9', '2', '1', '6', '8']) {
+      await tester.tap(find.text(ch));
+      await tester.pump();
+    }
+
+    // Le point est apparu tout seul après « 192 », pas après « 168 » (en
+    // cours de saisie).
+    expect(controller.text, '192.168');
+  });
+
+  testWidgets('raccourci IP serveur : un appui remplit le champ',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
+    );
+
+    await tester.ensureVisible(find.byKey(const Key('ipShortcut_127.0.0.1')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ipShortcut_127.0.0.1')));
+    await tester.pump();
+
+    final serverField =
+        tester.widget<TextField>(find.byType(TextField).at(4)).controller!;
+    expect(serverField.text, '127.0.0.1');
+  });
+
+  testWidgets("l'IP serveur ne s'applique au contrôleur partagé qu'au save",
+      (tester) async {
+    final shared = TextEditingController(text: '192.168.10.41');
+    addTearDown(shared.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ConnectiviteScreen(networkConfig: _demoCfg, serverIp: shared),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(find.byKey(const Key('ipShortcut_127.0.0.1')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ipShortcut_127.0.0.1')));
+    await tester.pump();
+
+    // Frappe seule : le partagé ne bouge pas (les flux des autres onglets
+    // ne se réabonnent pas encore).
+    expect(shared.text, '192.168.10.41');
+
+    await tester.ensureVisible(find.byIcon(Icons.save));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.save));
+    await tester.pump();
+
+    expect(shared.text, '127.0.0.1');
+  });
+
+  testWidgets('IP serveur invalide → test réseau refusé avec erreur',
+      (tester) async {
+    var appels = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ConnectiviteScreen(
+            networkConfig: _demoCfg,
+            testeur: (ip) async {
+              appels++;
+              return const [];
+            },
+          ),
+        ),
+      ),
+    );
+
+    // Vider le champ serveur (index 4) pour le rendre invalide.
+    await tester.ensureVisible(find.byType(TextField).at(4));
+    await tester.pump();
+    await tester.tap(find.byType(TextField).at(4));
+    await tester.pump();
+    for (var i = 0; i < 14; i++) {
+      await tester.tap(find.byIcon(Icons.backspace_outlined));
+      await tester.pump();
+    }
+
+    await tester.ensureVisible(find.text('Lancer le test'));
+    await tester.pump();
+    await tester.tap(find.text('Lancer le test'), warnIfMissed: false);
+    await tester.pump();
+
+    expect(appels, 0);
+    expect(find.text('Adresse IPv4 invalide'), findsOneWidget);
+  });
+
+  testWidgets('passerelle hors du sous-réseau → erreur au save',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: ConnectiviteScreen(
+            networkConfig: NetworkConfig(
+              ip: '192.168.10.41',
+              mask: '255.255.255.0',
+              gateway: '10.30.0.1',
+              dns: '192.168.10.1',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(find.byIcon(Icons.save));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.save));
+    await tester.pump();
+
+    expect(find.text('Passerelle hors du sous-réseau'), findsOneWidget);
+    expect(find.text('Configuration réseau enregistrée.'), findsNothing);
+  });
+
   testWidgets('backspace efface une sélection étendue', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
     );
     await tester.tap(find.byType(TextField).at(0));
     await tester.pump();
@@ -244,7 +388,7 @@ void main() {
       'backspace avec le curseur en tout début de champ ne supprime rien',
       (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
     );
     await tester.tap(find.byType(TextField).at(0));
     await tester.pump();
@@ -262,7 +406,7 @@ void main() {
   testWidgets('backspace sur un champ déjà vide ne fait rien (pas de crash)',
       (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
     );
     await tester.tap(find.byType(TextField).at(0));
     await tester.pump();
@@ -283,7 +427,7 @@ void main() {
   testWidgets('bascule Statique→DHCP : DNS reste éditable, IP grisée',
       (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
     );
 
     await tester.tap(find.text('Mode DHCP'));
@@ -299,7 +443,7 @@ void main() {
       'le pavé reste ouvert si le DNS était actif au moment du basculement',
       (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
     );
 
     await tester.tap(find.byType(TextField).at(3)); // focaliser le DNS
@@ -322,7 +466,7 @@ void main() {
       'le pavé se ferme si le champ actif devient grisé au basculement',
       (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ConnectiviteScreen())),
+      const MaterialApp(home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, ))),
     );
 
     await tester.tap(find.byType(TextField).at(0)); // focaliser l'IP
@@ -340,7 +484,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ConnectiviteScreen(ethernetStream: Stream.value(true)),
+          body: ConnectiviteScreen(networkConfig: _demoCfg, ethernetStream: Stream.value(true)),
         ),
       ),
     );
@@ -356,7 +500,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ConnectiviteScreen(ethernetStream: Stream.value(false)),
+          body: ConnectiviteScreen(networkConfig: _demoCfg, ethernetStream: Stream.value(false)),
         ),
       ),
     );
@@ -373,7 +517,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ConnectiviteScreen(ethernetStream: controller.stream),
+          body: ConnectiviteScreen(networkConfig: _demoCfg, ethernetStream: controller.stream),
         ),
       ),
     );
@@ -398,7 +542,7 @@ void main() {
     addTearDown(serverIp.dispose);
 
     await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: ConnectiviteScreen(serverIp: serverIp)),
+      home: Scaffold(body: ConnectiviteScreen(networkConfig: _demoCfg, serverIp: serverIp)),
     ));
 
     // Champ "Adresse IP" du serveur Fluxia : 5e TextField (IP, Masque,
@@ -413,6 +557,18 @@ void main() {
       await tester.tap(find.text(k));
       await tester.pump();
     }
+
+    // La frappe reste en brouillon ; le contrôleur partagé n'est mis à jour
+    // qu'à la sauvegarde.
+    expect(serverIp.text, '192.168.10.41');
+
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_down),
+        warnIfMissed: false);
+    await tester.pump();
+    await tester.ensureVisible(find.byIcon(Icons.save));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.save));
+    await tester.pump();
 
     expect(serverIp.text, '10.30.0.1');
   });

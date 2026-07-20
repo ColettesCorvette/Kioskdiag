@@ -16,7 +16,9 @@ Stream<ReadersSnapshot> readersSnapshots(String serverIp) {
   Timer? timer;
   var cancelled = false;
   var busy = false;
-  var last = ReaderInfo.mock();
+  // Vide tant qu'aucun scrape n'a réussi : sur la borne on n'affiche jamais
+  // de valeurs fictives, l'écran montre « en attente » à la place.
+  var last = <ReaderInfo>[];
 
   Future<void> tick() async {
     if (busy) return;
@@ -31,7 +33,7 @@ Stream<ReadersSnapshot> readersSnapshots(String serverIp) {
       if (response.statusCode != 200) {
         throw const HttpException('statut != 200');
       }
-      last = parseReadersMetrics(body);
+      last = mergeReaders(last, parseReadersMetrics(body));
       if (!cancelled) {
         controller.add(ReadersSnapshot(readers: last, reachable: true));
       }

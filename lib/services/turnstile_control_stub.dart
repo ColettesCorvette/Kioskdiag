@@ -29,5 +29,7 @@ Stream<EvenementTourniquet> evenements(String serverIp) {
   return controller.stream;
 }
 
-/// Web/preview : port gatectl par défaut.
+/// Web/preview : port et IP gatectl par défaut.
 int gatectlPort() => 8081;
+
+String gatectlDefaultIp() => '192.168.10.41';

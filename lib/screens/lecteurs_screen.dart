@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/reader_info.dart';
 import '../services/readers_status.dart';
+import '../services/turnstile_control.dart';
 import '../theme.dart';
 import '../widgets/reader_card.dart';
 
@@ -31,7 +32,7 @@ class _LecteursScreenState extends State<LecteursScreen> {
   @override
   void initState() {
     super.initState();
-    _subscribedIp = widget.serverIp?.text ?? '192.168.10.41';
+    _subscribedIp = widget.serverIp?.text ?? gatectlDefaultIp();
     _snapshots = _source(_subscribedIp);
     // IP éditable dans l'onglet Connectivité, onglets toujours montés
     // (IndexedStack) : sans réabonnement on pollerait l'ancienne IP.
@@ -60,8 +61,17 @@ class _LecteursScreenState extends State<LecteursScreen> {
     return StreamBuilder<ReadersSnapshot>(
       stream: _snapshots,
       builder: (context, snap) {
-        final data = snap.data ??
-            ReadersSnapshot(readers: ReaderInfo.mock(), reachable: true);
+        final data = snap.data;
+        if (data == null || (data.readers.isEmpty && data.reachable)) {
+          return _placeholder(
+            data == null
+                ? 'En attente de la gatectl…'
+                : 'Aucun lecteur détecté',
+          );
+        }
+        if (data.readers.isEmpty) {
+          return _placeholder('Gatectl injoignable');
+        }
         return Column(
           children: [
             if (!data.reachable)
@@ -91,6 +101,24 @@ class _LecteursScreenState extends State<LecteursScreen> {
           ],
         );
       },
+    );
+  }
+
+  // Pas de spinner : une animation infinie empêcherait pumpAndSettle de
+  // converger dans les tests du shell.
+  Widget _placeholder(String message) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.sensors, size: 28, color: DiagColors.textMuted),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            style: const TextStyle(fontSize: 13, color: DiagColors.textMuted),
+          ),
+        ],
+      ),
     );
   }
 }

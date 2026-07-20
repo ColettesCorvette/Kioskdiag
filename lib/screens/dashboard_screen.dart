@@ -27,8 +27,8 @@ class DashboardScreen extends StatefulWidget {
   final DiagnosticData data;
 
   /// Uptime courant. Calculé et incrémenté par un timer unique dans
-  /// HomeShell (voir A1) : le reconstruire ici le ferait repartir de zéro à
-  /// chaque changement d'onglet.
+  /// HomeShell : le reconstruire ici le ferait repartir de zéro à chaque
+  /// changement d'onglet.
   final Duration uptime;
 
   /// En portrait le footer est dans le corps ; en paysage le shell l'affiche
@@ -157,41 +157,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _narrowBody(DiagnosticData d) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          LayoutBuilder(
-            builder: (context, c) {
-              final uptime = _uptimeCard(d);
-              final disk = _diskCard(d);
-              if (c.maxWidth >= 520) {
-                return IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: uptime),
-                      const SizedBox(width: 16),
-                      Expanded(child: disk),
-                    ],
-                  ),
-                );
-              }
-              return Column(
-                children: [uptime, const SizedBox(height: 16), disk],
-              );
-            },
+    // Footer hors du scroll : épinglé en bas, il ne bouge pas quand le
+    // contenu change de hauteur (bascule mémoire/processeur).
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                LayoutBuilder(
+                  builder: (context, c) {
+                    final uptime = _uptimeCard(d);
+                    final disk = _diskCard(d);
+                    if (c.maxWidth >= 520) {
+                      return IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: uptime),
+                            const SizedBox(width: 16),
+                            Expanded(child: disk),
+                          ],
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: [uptime, const SizedBox(height: 16), disk],
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _perfCard(d),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          _perfCard(d),
-          if (widget.embedFooter) ...[
-            const SizedBox(height: 24),
-            AppFooter(data: d),
-            const SizedBox(height: 8),
-          ],
-        ],
-      ),
+        ),
+        if (widget.embedFooter)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+            child: AppFooter(data: d),
+          ),
+      ],
     );
   }
 

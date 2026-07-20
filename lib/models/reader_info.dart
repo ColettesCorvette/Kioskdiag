@@ -89,11 +89,38 @@ class ReaderInfo {
 /// Déduit le type de lecteur des labels gatectl (model + port).
 ReaderKind readerKindFor(String model, String name) {
   final s = '$model $name'.toUpperCase();
-  if (s.contains('QR') || s.contains('BARCODE')) return ReaderKind.qr;
+  // VGUANG : lecteurs de QR codes série.
+  if (s.contains('QR') || s.contains('BARCODE') || s.contains('VGUANG')) {
+    return ReaderKind.qr;
+  }
   if (s.contains('BP') || s.contains('BUTTON') || s.contains('POUSSOIR')) {
     return ReaderKind.button;
   }
   return ReaderKind.rfid;
+}
+
+/// Fusionne le scrape courant avec la liste précédente : un lecteur déjà vu
+/// qui disparaît du /metrics (série absente pendant un timeout) reste affiché
+/// en erreur avec ses dernières valeurs, au lieu de clignoter.
+List<ReaderInfo> mergeReaders(
+  List<ReaderInfo> previous,
+  List<ReaderInfo> current,
+) {
+  final currentIds = {for (final r in current) r.id};
+  final merged = [
+    ...current,
+    for (final r in previous)
+      if (!currentIds.contains(r.id))
+        ReaderInfo(
+          id: r.id,
+          name: r.name,
+          kind: r.kind,
+          status: ReaderStatus.error,
+          useCount: r.useCount,
+        ),
+  ];
+  merged.sort((a, b) => a.id.compareTo(b.id));
+  return merged;
 }
 
 /// Photo instantanée de l'état des lecteurs, émise par readers_status.
@@ -103,6 +130,6 @@ class ReadersSnapshot {
   final List<ReaderInfo> readers;
 
   /// false si le dernier scrape de la gatectl a échoué (readers = dernière
-  /// liste connue, ou mock si aucun scrape n'a jamais réussi).
+  /// liste connue, vide si aucun scrape n'a jamais réussi).
   final bool reachable;
 }
