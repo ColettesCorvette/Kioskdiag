@@ -1,5 +1,10 @@
 # Kioskdiag — Config / Diagnostic Tourniquets
 
+
+> **Projet de stage, publié anonymisé.** Les noms d'entreprise, de produits,
+> de clients et de personnes ont été remplacés, et les documents d'exemple
+> retirés. Voir [ANONYMISATION.md](ANONYMISATION.md).
+
 Appli Flutter de configuration et de diagnostic des tourniquets. Elle tourne en
 kiosque plein écran sur une borne RK3568 — la même qui affiche en permanence
 kioskview, l'écran client — et on l'ouvre à la demande par un geste sur la
