@@ -1,3 +1,5 @@
+![kioskdiag](assets/banniere.png)
+
 # Kioskdiag — Config / Diagnostic Tourniquets
 
 
